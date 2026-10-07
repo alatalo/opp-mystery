@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="fi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<script>document.documentElement.className += ' js game';</script>
+<title>oulunpaitapaino.fi - Painopalvelua jo vuodesta 1992</title>
+<meta name="description" content="Oulun Paitapaino painaa t-paitoihin, lippalakkeihin ja muihin tekstiileihin Pikisaaressa. Painopalvelua jo vuodesta 1992. Tule käymään, soita tai jätä lappu oveen.">
+<meta name="keywords" content="oulun paitapaino tekstiilipaino t-paita">
+<link rel="canonical" href="https://oulunpaitapaino.fi/">
+<meta name="geo.position" content="65.0190053;25.4528008">
+<meta name="geo.placename" content="Oulu">
+<meta name="icbm" content="65.0190053,25.4528008">
+<meta property="og:title" content="oulunpaitapaino.fi - Painopalvelua jo vuodesta 1992">
+<meta property="og:description" content="On synkkä ja myrskyinen yö. Edessäsi on vanha teollisuusalue ja lukittu ovi. Mitä haluat tehdä?">
+<meta property="og:type" content="website">
+<meta property="og:locale" content="fi_FI">
+<meta property="og:url" content="https://oulunpaitapaino.fi/">
+<meta property="og:image" content="https://oulunpaitapaino.fi/assets/img/og.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="theme-color" content="#0000ff">
+<link rel="icon" type="image/png" sizes="16x16" href="assets/img/icon-16x16.png">
+<link rel="icon" type="image/png" sizes="32x32" href="assets/img/icon-32x32.png">
+<link rel="icon" type="image/png" sizes="96x96" href="assets/img/icon-96x96.png">
+<link rel="apple-touch-icon" sizes="152x152" href="assets/img/icon-152x152.png">
+<link rel="preload" href="assets/fonts/silkscreen-latin.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="css/style.css">
+<!-- The palette depends on the conditions (moon, light, opening hours...), so these three small scripts run in the head
+     and set <html data-paletti> before the first paint. Everything else loads at the end of the body. -->
+<script src="js/config.js"></script>
+<script src="js/facts.js"></script>
+<script src="js/galaksi.js"></script>
+<script>try { document.documentElement.setAttribute('data-paletti', Paita.galaksi.paletteNow()); } catch (e) { /* default palette */ }</script>
+<!-- PHONE: remove the "telephone" line below if showPhone is false -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "LocalBusiness",
+  "name": "Oulun Paitapaino",
+  "url": "https://oulunpaitapaino.fi/",
+  "foundingDate": "1992",
+  "email": "info@oulunpaitapaino.fi",
+  "telephone": "+3584578348307",
+  "description": "Painopalvelua jo vuodesta 1992.",
+  "image": "https://oulunpaitapaino.fi/assets/img/og.jpg",
+  "address": {
+    "@type": "PostalAddress",
+    "streetAddress": "Pikisaarentie 15",
+    "postalCode": "90100",
+    "addressLocality": "Oulu",
+    "addressCountry": "FI"
+  },
+  "geo": { "@type": "GeoCoordinates", "latitude": 65.0190053, "longitude": 25.4528008 },
+  "openingHoursSpecification": [{
+    "@type": "OpeningHoursSpecification",
+    "dayOfWeek": ["Tuesday", "Wednesday", "Thursday", "Friday"],
+    "opens": "12:00",
+    "closes": "18:00"
+  }]
+}
+</script>
+</head>
+<body>
+<!-- recolours the ASCII figure (blue picture) to the active palette; the engine fills in the matrix -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false"><filter id="figf" color-interpolation-filters="sRGB"><feColorMatrix id="figm" type="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 1 0"/></filter></svg>
+<a class="skip" href="#sisalto">Siirry sisältöön</a>
+
+<div id="app">
+  <canvas id="fx" aria-hidden="true"></canvas>
+
+  <header class="top">
+    <div class="wrap">
+      <h1 class="logo"><img src="assets/img/logo.png" width="1024" height="61" alt="Oulun Paitapaino"></h1>
+    </div>
+  </header>
+
+  <main id="sisalto" tabindex="-1">
+    <div class="wrap" id="stage">
+      <h2 id="otsikko" tabindex="-1"></h2>
+      <div id="beat" class="beat" aria-live="polite"></div>
+      <div id="aside" class="aside" hidden></div>
+      <noscript>
+        <!-- Static version for visitors without JavaScript. The adventure itself lives in tarina.txt. -->
+        <h2>Oulun Paitapaino</h2>
+        <p>Olet saapunut vanhalle teollisuusalueelle Pikisaareen. Ovi on lukossa ja ikkunassa palaa valo. Sisällä joku, tai jokin, painaa t-paitoja. Tämä sivu vaatii JavaScriptin seikkailuun, mutta asiat löytyvät tästä.</p>
+        <p>Oulun Paitapaino painaa t-paitoihin, lippalakkeihin ja muihin tekstiileihin. Painopalvelua jo vuodesta 1992.</p>
+        <p>Pikisaarentie 15<br>90100 Oulu</p>
+        <p>Tiistaista perjantaihin kello 12:00 - 18:00.</p>
+        <p><a href="mailto:info@oulunpaitapaino.fi">info@oulunpaitapaino.fi</a></p>
+        <!-- PHONE: remove if showPhone is false -->
+        <p><a href="tel:+3584578348307">045 7834 8307</a></p>
+        <p><a href="tylsa.html">En jaksa pelata</a></p>
+      </noscript>
+    </div>
+  </main>
+
+  <footer class="foot">
+    <p id="ovnote" class="ovnote wrap" hidden><a href="galaksi.html"></a></p>
+    <div class="wrap footrow">
+      <button type="button" id="prev" class="prev" aria-label="Edellinen ruutu" style="visibility:hidden"><span aria-hidden="true">&lt;</span></button>
+      <ul class="footlinks">
+        <li><a id="foot-tylsa" href="tylsa.html">En jaksa pelata</a></li>
+        <li><a id="foot-tietosuoja" href="tietosuoja.html">Tietosuoja</a></li>
+        <li><a id="foot-galaksi" class="gal" href="galaksi.html" aria-label="Galaksin asennot" title="Galaksin asennot">*</a></li>
+      </ul>
+    </div>
+  </footer>
+
+  <div id="boot" hidden aria-hidden="true"></div>
+</div>
+
+<!-- The note form lives here while it is not on screen (the engine moves it into the text area) -->
+<div id="formhold" hidden>
+  <form id="lappu-form" class="note-form" action="api/laheta.php" method="post" novalidate>
+    <div class="field" data-q="nimi"><label for="f-nimi">Nimi</label><input id="f-nimi" name="nimi" type="text" placeholder="Nimi" autocomplete="name" required maxlength="100"></div>
+    <div class="field" data-q="klaani"><label for="f-klaani">Klaani (valinnainen)</label><input id="f-klaani" name="klaani" type="text" placeholder="Klaani" autocomplete="off" maxlength="100"></div>
+    <div class="field" data-q="yhteys"><label for="f-yhteys">Sähkeosoite tai puhelin</label><input id="f-yhteys" name="yhteys" type="text" placeholder="Sähkeosoite tai puhelin" autocomplete="off" required maxlength="150"></div>
+    <div class="field" data-q="viesti"><label for="f-viesti">Viesti</label><textarea id="f-viesti" name="viesti" placeholder="Viesti" required maxlength="5000" rows="3"></textarea></div>
+    <div class="hp" aria-hidden="true"><label for="f-www">Älä täytä tätä</label><input id="f-www" name="www" type="text" tabindex="-1" autocomplete="off"></div>
+    <input type="hidden" name="kesto" value="">
+    <button type="button" id="ask-next" class="btn">JATKA</button>
+    <button type="submit" id="ask-send" class="btn" hidden>JÄTÄ VIESTI</button>
+    <button type="button" id="ask-cancel" class="skipq">Ei sittenkään</button>
+    <p class="formstatus" role="status" aria-live="polite" hidden></p>
+    <p class="privacy"><a id="privacy-link" href="tietosuoja.html">Tietosuoja: minne lappu menee</a></p>
+  </form>
+</div>
+
+<script src="js/tarina.js"></script>
+<script src="js/fx.js"></script>
+<script src="js/game.js"></script>
+</body>
+</html>

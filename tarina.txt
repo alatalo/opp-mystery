@@ -1,0 +1,674 @@
+# ====================================================================================
+#  OULUN PAITAPAINO - TARINATIEDOSTO
+#  Koko tarina on tässä tiedostossa. Muokkaa Muistiolla (Notepad) ja tallenna UTF-8-muodossa.
+#  Pidempi ohje: docs/OHJE-TEKSTIT.md. Testaa muutokset avaamalla galaksi.html.
+# ====================================================================================
+#
+#  PERUSSÄÄNNÖT
+#   - Rivi, joka alkaa risuaidalla (#), on kommentti. Se ei näy sivulla.
+#   - Tyhjä rivi erottaa kappaleet.
+#   - Avainsanat kirjoitetaan ISOILLA KIRJAIMILLA rivin alkuun (KUN, JOS, OTSIKKO ...).
+#   - Kaikki teksti näkyy sivulla isoilla kirjaimilla, joten isoilla ja pienillä ei ole väliä.
+#   - Puhelinnumeroa, sähköpostia tai osoitetta EI kirjoiteta tähän käsin. Käytä {puhelin},
+#     {sähköposti}, {katu}, {postinumero}. Ne haetaan tiedostosta js/config.js.
+#
+#  KOHTAUS
+#   == nimi                 uusi kohtaus alkaa. Nimi on pieniä kirjaimia ilman välilyöntejä (alku, ikkuna ...)
+#   OTSIKKO: Teksti        kohtauksen otsikko (alaviiva tulee perään itsestään)
+#   SÄÄ: päällä            sade, lumi ja salamat taustalle (vain alkukohtaukseen)
+#
+#  RUUDUT (jatka-napautukset)
+#   ---                    uusi ruutu alkaa. Yksi ruutu = yksi tai kaksi kappaletta.
+#                          Jos ruutuun ei mahdu kaikki, sivu jakaa sen itse.
+#   Kohtauksen viimeinen ruutu on valinnat (rivit, jotka alkavat merkillä >).
+#
+#  VALINNAT JA LINKIT
+#   > Teksti -> kohde      valinta. Kohde on kohtauksen nimi, www-osoite (https://...) tai
+#                          puhelin, sähkö tai reitti (arvot haetaan config.js:stä)
+#   [sana -> kohde]        linkki kesken kappaleen, samat kohteet
+#   ? Teksti               "kysymysmerkkinappi": vitsi, joka aukeaa napautuksesta.
+#                          Kuuluu rivin heti edellä olevalle kappaleelle tai valinnalle.
+#
+#  ERIKOISRUUDUT (omalle rivilleen)
+#   NÄYTÄ hahmo            ASCII-hahmo kuvana
+#   NÄYTÄ kortti           punainen aukioloilmoitus. Seuraavat rivit tyhjään riviin asti ovat kortin tekstiä.
+#   NÄYTÄ kyltti           osoitekyltti. Seuraavat rivit ovat kyltin tekstiä.
+#   NÄYTÄ kartta           osoite, reittilinkki ja kartta
+#   NÄYTÄ kissa            pieni yllätys
+#   KYSY nimi              lomakkeen kysymys (nimi, klaani, yhteys, viesti, vahvista), kysymysteksti on sen yllä
+#
+#  VAIHTOEHDOT ("galaksin asennot")
+#   Kappaleen, valinnan, ruudun tai otsikon voi vaihtaa toiseen tietyllä ehdolla.
+#
+#     Tämä on tavallinen kappale (oletus).
+#
+#     KUN täysikuu JA yö
+#     Tämä näytetään oletuksen tilalla, kun ehto pitää.
+#
+#     JOS auki
+#     Tämä kappale näytetään VAIN jos ehto pitää, muuten ei mitään.
+#
+#     MUUTEN
+#     Tämä näytetään JOS-kappaleen jälkeen, kun JOS-ehto ei pitänyt.
+#
+#   Ehdot (yhdistä JA:lla tai TAI:lla, EI kieltää):
+#     kuu:       uusikuu, kasvava kuu, täysikuu, vähenevä kuu
+#     kellonaika: aamu, päivä, ilta, yö
+#     valo:      pimeää, valoisaa, hämärä, aurinko ylhäällä, yötön yö, kaamos
+#     viikko:    maanantai ... sunnuntai, arki, viikonloppu
+#     vuosi:     kevät, kesä, syksy, talvi, tammikuu ... joulukuu, juhannus, joulu, vappu
+#     kauppa:    auki, kiinni
+#     kävijä:    palaava, uusi kävijä, nähty (tämä kohtaus nähty), nähty ikkuna (jokin toinen kohtaus nähty), lähettänyt
+#     arpa:      arpa 10%   (arvonta, pysyy samana koko vierailun)
+#     muu:       puhelin esillä
+#   Kun useampi vaihtoehto sopii, voittaa se jolla on eniten ehtoja. Jos niitä on yhtä monta,
+#   voittaa tiedostossa ensimmäinen. Mikään ei sopinut: näytetään oletus.
+#
+#  KIERTOTIE (pieni sivupolku valinnan ja sen kohteen väliin)
+#   KIERTOTIE nimi
+#   VÄLILLÄ alku -> ikkuna    (lähtö -> kohde, * tarkoittaa mitä tahansa)
+#   KUN arpa 15%              (ehto, vapaaehtoinen; kirjoita ennen tekstiä)
+#   OTSIKKO: Otsikko
+#   teksti... (--- jakaa ruutuihin, 1-2 ruutua)
+#   Kiertotie näytetään kerran vierailussa (TOISTUU-rivi toistaa). Se jatkuu aina perille asti.
+#
+#  MERKINNÄT TÄSSÄ TIEDOSTOSSA
+#   "# LUONNOS" = Clauden kirjoittama ehdotus. Muokkaa, poista tai pidä.
+#   "# v1" = versiossa 1 lisätty teksti. Omistajan alkuperäiset rivit ovat ilman merkintää.
+# ====================================================================================
+
+
+# ------------------------------------------------------------------------------------
+== käynnistys
+# Näkyy vain kerran vierailussa, heti alussa. Yksi kappale = yksi rivi.
+# LUONNOS (koko käynnistys)
+OULUN PAITAPAINO KÄYNNISTYY
+
+# LUONNOS
+MUISTI 640K ... OK
+
+# LUONNOS
+KUU: {kuu}
+
+# LUONNOS
+KELLO {kellonaika}, {viikonpäivä}
+
+# LUONNOS
+AURINKO: {aurinko}
+
+# LUONNOS
+GALAKSIN ASENNOT LUETTU.
+
+# LUONNOS
+KUN täysikuu
+GALAKSIN ASENNOT LUETTU. HAHMO ON HERÄÄMÄSSÄ.
+
+
+# ------------------------------------------------------------------------------------
+== alku
+SÄÄ: päällä
+OTSIKKO: On synkkä ja myrskyinen yö
+
+# LUONNOS
+KUN yötön yö JA päivä
+OTSIKKO: On kirkas ja täysin myrskytön päivä
+
+# LUONNOS
+KUN yötön yö
+OTSIKKO: On valoisa ja tyyni yö
+
+# LUONNOS
+KUN päivä
+OTSIKKO: On synkkä ja myrskyinen päivä
+
+# LUONNOS
+KUN aamu
+OTSIKKO: On synkkä ja myrskyinen aamu
+
+# LUONNOS
+KUN ilta
+OTSIKKO: On synkkä ja myrskyinen ilta
+
+# LUONNOS
+KUN kaamos JA pimeää
+OTSIKKO: On synkkä ja myrskyinen päivä, ainakin kellon mukaan
+
+# LUONNOS
+KUN täysikuu JA pimeää
+OTSIKKO: On synkkä, myrskyinen ja ylivalaistu yö
+
+# LUONNOS
+KUN uusikuu JA pimeää
+OTSIKKO: On synkkä, myrskyinen ja kuuton yö
+
+# LUONNOS
+KUN palaava
+OTSIKKO: On taas synkkä ja myrskyinen yö
+
+Veneesi on haaksirikkoutunut Perämeren Itärannikolle ja uit laudan palasella Rommakonselkää pusikkoiselle hiekkamaalle.
+
+# LUONNOS (harvinainen, 4 %)
+KUN arpa 4%
+Veneesi on haaksirikkoutunut Perämeren Itärannikolle ja uit laudan palasella Rommakonselkää pusikkoiselle hiekkamaalle. Laudassa lukee sinun nimesi. Et muista kirjoittaneesi sitä.
+
+# LUONNOS
+KUN talvi JA pimeää
+Veneesi on jäätynyt kiinni Perämeren Itärannikolle ja kävelet laudan palasella Rommakonselän jäätä pusikkoiselle hiekkamaalle. Jää ratisee tahdissa, joka tuntuu tutulta. Et tunnista kappaletta.
+
+# LUONNOS
+KUN yötön yö
+Veneesi on haaksirikkoutunut Perämeren Itärannikolle vaikka meri on peilityyni. Se on vain jotenkin päättänyt haaksirikkoutua. Uit laudan palasella Rommakonselkää pusikkoiselle hiekkamaalle.
+
+# LUONNOS
+KUN palaava
+Veneesi on taas haaksirikkoutunut. Se alkaa tuntua henkilökohtaiselta. Uit laudan palasella Rommakonselkää pusikkoiselle hiekkamaalle. Lauta tuntuu tutulta.
+
+# LUONNOS
+KUN täysikuu JA pimeää
+Veneesi on haaksirikkoutunut Perämeren Itärannikolle ja uit laudan palasella Rommakonselkää pusikkoiselle hiekkamaalle. Täysikuu on horisontissa kuin kolikko pöydällä. Se on tavallista isompi. Joku on mitannut väärin.
+
+# LUONNOS
+KUN uusikuu JA pimeää
+Veneesi on haaksirikkoutunut Perämeren Itärannikolle ja uit laudan palasella Rommakonselkää pusikkoiselle hiekkamaalle. Taivaalla ei ole kuuta. Se on varmaan toisessa kohtauksessa.
+
+# LUONNOS
+KUN yötön yö JA päivä
+Veneesi on haaksirikkoutunut Perämeren Itärannikolle keskellä kirkasta päivää. Meri on peilityyni ja aurinko seisoo keskellä taivasta, kuten se on seissyt jo viikon. Uit laudan palasella Rommakonselkää hiekkamaalle. Haaksirikko tuntuu epäasialliselta.
+
+# LUONNOS
+KUN päivä JA valoisaa
+Veneesi on haaksirikkoutunut Perämeren Itärannikolle keskellä päivää. Kukaan ei tunnu huomaavan, vaikka lauta on iso. Uit Rommakonselkää pusikkoiselle hiekkamaalle ja olet ihan kuiva vähän liian nopeasti.
+
+# LUONNOS
+KUN auki
+Veneesi on haaksirikkoutunut Perämeren Itärannikolle ja uit laudan palasella Rommakonselkää pusikkoiselle hiekkamaalle. Rannasta näkyy ikkunassa valo. Se palaa juuri sillä tavalla kuin valo palaa, kun liike on auki.
+
+Nouset märkänä rantatörmälle ja näet edessäsi vanhan teollisuusalueen. Hämärässä erotat kyltin kiemuroista sanat "[Pikisaaren Kulttuuritehdas -> https://www.instagram.com/pikisaarenkulttuuritehdas/]".
+? Kyltissä on outoja symboleja jotka hehkuvat himmeästi. Kun lähestyt niitä saat näkyjä toisesta ulottuvuudesta.
+
+# LUONNOS
+KUN täysikuu JA pimeää
+Nouset märkänä rantatörmälle ja täysikuu valaisee edessäsi vanhan teollisuusalueen. Kyltin kiemuroista erotat sanat "[Pikisaaren Kulttuuritehdas -> https://www.instagram.com/pikisaarenkulttuuritehdas/]". Kuu on tänään tavallista lähempänä. Todennäköisesti se on vain kirkas.
+? Kyltin symbolit eivät hehku täysikuun valossa. Ne odottavat.
+
+# LUONNOS
+KUN uusikuu JA pimeää
+Nouset märkänä rantatörmälle. Kuuta ei ole, mutta kyltin kiemurat hehkuvat itse. Erotat sanat "[Pikisaaren Kulttuuritehdas -> https://www.instagram.com/pikisaarenkulttuuritehdas/]" ja edessäsi on vanha teollisuusalue.
+
+# LUONNOS
+KUN yötön yö
+Nouset kuivumaan rantatörmälle ja näet edessäsi vanhan teollisuusalueen. Kyltin kiemurat näkyvät erinomaisesti: "[Pikisaaren Kulttuuritehdas -> https://www.instagram.com/pikisaarenkulttuuritehdas/]". Kaikki on liian selvää. Tämä ei tunnu oikealta.
+
+# LUONNOS
+KUN nähty
+Nouset taas märkänä rantatörmälle. Teollisuusalue on edelleen paikallaan, vaikka toivoit muuta. Kyltissä lukee edelleen "[Pikisaaren Kulttuuritehdas -> https://www.instagram.com/pikisaarenkulttuuritehdas/]".
+
+---
+Mitä haluat tehdä:
+
+# LUONNOS
+KUN nähty
+Seisot taas pihalla. Mitä haluat tehdä:
+
+# LUONNOS
+KUN palaava
+Tiedät jo mitä haluat tehdä. Tai luulet tietäväsi:
+
+JOS auki
+> Ovi on raollaan ja ikkunassa palaa valo. Astut sisään. -> auki
+
+> Kirjoitat Paitapainon oven väliin heippalapun. -> paperilappu
+
+> Kurkkaat ikkunasta mitä sisällä näkyy. -> ikkuna
+
+# LUONNOS
+KUN kiinni JA pimeää
+> Kurkkaat ikkunasta, vaikka sisällä on pimeää. Pimeässä näkyy parhaiten. -> ikkuna
+
+# LUONNOS
+KUN nähty ikkuna
+> Kurkkaat ikkunasta uudestaan. Hahmo on varmaan ehtinyt siirtyä. -> ikkuna
+
+> Mielesi tekee lämmintä juotavaa ja sisältä leijailee hento kahvin tuoksu. -> https://industrial.strength.coffee/
+? Et ole varma mikä päivä tänään on ja koputat ikkunaan.
+
+# LUONNOS
+KUN talvi
+> Mielesi tekee lämmintä juotavaa ja sisältä leijailee hento kahvin tuoksu. Sormesi ovat jo lakanneet kuulumasta sinulle. -> https://industrial.strength.coffee/
+? Et ole varma mikä päivä tänään on ja koputat ikkunaan.
+
+
+# ------------------------------------------------------------------------------------
+== paperilappu
+OTSIKKO: Tartut oveen
+
+Ovi on lukossa. kahvassa roikkuu pala ruutuvihkoa ja pehmeäksi lahonnut [lyijykynä -> paperilappu].
+? Luet kynän kylkeen kaiverretuista riimuista sen kuuluvan henkilölle IKEA. Tai ehkä tämä on loitsu suojaamaan kynää sateelta.
+
+# LUONNOS
+KUN nähty
+Ovi on edelleen lukossa. Paperi on edelleen kahvassa. Kynä on edelleen pehmeä. Jokin on kuitenkin muuttunut, mutta et saa selville mikä.
+
+Koetat raapustaa kohmeisilla käsilläsi terveiset paperiin ja toivot että sen löytää joku, kuka tahansa.
+
+---
+Kunpa vastausta ei tarvitsisi odotella pitkään. kylmä viima liimaa märät vaatteet ihoasi vasten.
+
+# LUONNOS
+KUN talvi
+Kunpa vastausta ei tarvitsisi odotella pitkään. Pakkanen puree sormiin ja kynä kirjoittaa vain puoliksi.
+
+# LUONNOS
+KUN yötön yö
+Kunpa vastausta ei tarvitsisi odotella pitkään. Aurinko paistaa niskaan vaikka kello on paljon. Märät vaatteet ovat melkein kuivuneet, mikä ei tunnu reilulta.
+
+# v1
+Ovenkarmiin on kaiverrettu numero. Paperin kulmassa on sähkeosoite. Kumpikin näyttää tuoreemmalta kuin ovi.
+
+# v1
+KUN EI puhelin esillä
+Paperin kulmassa on sähkeosoite. Se näyttää tuoreemmalta kuin ovi.
+
+---
+# LUONNOS
+JOS lähettänyt
+Lappu on jo oven välissä. Voit silti raapustaa toisen. Kynä ei valita.
+
+# v1
+> Soitat karmiin kaiverrettuun numeroon: {puhelin} -> puhelin
+
+# v1
+> Kirjoitat paperin kulmassa olevaan sähkeosoitteeseen: {sähköposti} -> sähkö
+
+# LUONNOS
+> Raapustat lapun kynällä, joka on lakannut olemasta kynä. -> lappu
+
+> Palaa alkuun -> alku
+
+
+# ------------------------------------------------------------------------------------
+== lappu
+# LUONNOS (koko lomake: kysymykset ja otsikko)
+OTSIKKO: Raapustat lappua
+
+# LUONNOS
+KUN yö
+OTSIKKO: Raapustat lappua pimeässä
+
+# LUONNOS
+Paperin yläreunaan tulee ensin nimi. Kuka olet?
+
+# LUONNOS
+KUN lähettänyt
+Toinen lappu. Paperin yläreunaan tulee taas nimi. Kuka olet nyt?
+
+KYSY nimi
+
+---
+# LUONNOS
+Klaani, jos sinulla sellainen on. Jos ei ole, voit jättää kohdan tyhjäksi. Kukaan ei kysy.
+
+# LUONNOS
+KUN täysikuu
+Klaani, jos sinulla sellainen on. Täysikuun aikaan klaanit ovat aktiivisia. Voit myös jättää tyhjäksi.
+
+KYSY klaani
+
+---
+# LUONNOS
+Miten sinut tavoittaa? Sähkeosoite tai puhelinnumero kelpaa.
+KYSY yhteys
+
+---
+# LUONNOS
+Mitä raapustat?
+KYSY viesti
+
+---
+# LUONNOS
+Lappu on valmis. Työnnät sen oven väliin ja toivot parasta.
+
+KYSY vahvista
+
+---
+# LUONNOS
+Lisää ei tarvitse tehdä. Voit lähteä.
+
+> Kirjoitat vielä sähkeen suoraan: {sähköposti} -> sähkö
+
+# LUONNOS
+> Palaat pihalle. -> alku
+
+
+# ------------------------------------------------------------------------------------
+== ikkuna
+OTSIKKO: KURKISTAT SISÄÄN
+
+Nouset varpaillesi ja näet punaisen valon hohteessa loputtomasti erikoisia esineitä. Patsaita, tauluja, työvälineitä, soittimia...
+
+# LUONNOS
+KUN päivä
+Nouset varpaillesi ja näet loputtomasti erikoisia esineitä. Valo on punaista vaikka päivä paistaa lasin läpi. Patsaita, tauluja, työvälineitä, soittimia...
+
+# LUONNOS
+KUN nähty
+Nouset varpaillesi toisen kerran. Esineet ovat samoja. Ne ovat ehkä eri järjestyksessä.
+
+Seinillä roikkuu vaatteita ja päättelet, että verstaan pääasiallinen tarkoitus liittyy tekstiilien muokkaukseen ja koristeluun.
+
+---
+Kun työnnät nenäsi kiinni ikkunalasiin nähdäksesi paremmin havaitset liikkumattoman hahmon seisomassa koneiden keskellä.
+
+# LUONNOS
+KUN täysikuu JA pimeää
+Kun työnnät nenäsi kiinni ikkunalasiin nähdäksesi paremmin havaitset hahmon seisomassa koneiden keskellä. Se ei ole aivan liikkumaton. Täysikuun valossa se huojuu hieman, kuin kuuntelisi jotain.
+
+# LUONNOS
+KUN uusikuu JA pimeää
+Kun työnnät nenäsi kiinni ikkunalasiin nähdäksesi paremmin havaitset hahmon seisomassa koneiden keskellä. Uuden kuun aikaan se on vaikea nähdä. Se on varmaan helpottunut.
+
+Sen katse on hupun peitossa, mutta tunnet kuinka se tuijottaa sinua hiljaa hengittäen...
+
+# LUONNOS
+KUN palaava
+Sen katse on hupun peitossa, mutta tunnet kuinka se tuijottaa sinua hiljaa hengittäen... Se nyökkää. Tuntuu, että se tunnistaa sinut.
+
+# LUONNOS
+KUN kiinni
+Sen katse on hupun peitossa, mutta tunnet kuinka se tuijottaa sinua hiljaa hengittäen... Liike on kiinni. Se tuijottaa silti.
+
+---
+NÄYTÄ hahmo
+
+---
+# LUONNOS (ruutu näkyy vain täysikuun aikaan)
+JOS täysikuu JA pimeää
+Hahmon silmät ovat täysikuun aikaan tavallista punaisemmat. Sen voisi mitata. Et mittaa.
+
+---
+> Elehtien lasin takana kysyt voisitko päästä sisään. -> ohjeet
+? Sama yrittää jotain.
+
+> Esität kylmistynyttä ja osoitat kaihoisasti seinillä olevia kuivia vaatteita. -> https://stanleystella.com/
+? Hahmo muodostaa käsiliikkeillä ja sormilla outoja symboleita. Mieleesi tulvii telepaattinen vaatekuvasto.
+
+# LUONNOS
+KUN kesä
+> Esität kuumuuden uuvuttamaa ja osoitat kaihoisasti seinillä olevia ohuita vaatteita. -> https://stanleystella.com/
+? Hahmo muodostaa käsiliikkeillä ja sormilla outoja symboleita. Mieleesi tulvii telepaattinen vaatekuvasto.
+
+> kohottelet käsiäsi epätietoisena ja huomaat että et enää vain näyttele. olet täysin hukassa. -> kartta
+
+> Palaa alkuun -> alku
+
+
+# ------------------------------------------------------------------------------------
+== ohjeet
+OTSIKKO: Saat oHJEET
+
+Hahmo osoittaa sormella seinälle kiinnitettyä ilmoitusta. Kirjaimet ovat punaiset ja epäselvät. toivot että ne ovat mustetta.
+
+# LUONNOS
+KUN kiinni
+Hahmo osoittaa sormella seinälle kiinnitettyä ilmoitusta, sitten ovea ja sitten taas ilmoitusta. Kirjaimet ovat punaiset ja epäselvät. toivot että ne ovat mustetta.
+
+# LUONNOS
+KUN auki
+Hahmo osoittaa sormella seinälle kiinnitettyä ilmoitusta. Seinäkello näyttää samaa aikaa kuin sinun kellosi. Se on vähän liian helposti samaa mieltä. Kirjaimet ovat punaiset ja epäselvät. toivot että ne ovat mustetta.
+
+# LUONNOS
+KUN täysikuu JA pimeää
+Hahmo osoittaa sormella seinälle kiinnitettyä ilmoitusta. Kirjaimet ovat punaiset ja liikkuvat hieman. toivot että ne ovat mustetta.
+
+---
+NÄYTÄ kortti
+LiikE on avoinna
+TIISTAISTA PERJANTAIHIN
+KELLO {avaus} - {sulkeminen}
+{tilanne}
+
+---
+# v1
+Ilmoituksen alareunassa on numero ja nuoli, joka osoittaa pihalle. Alla on myös sähkeosoite.
+
+# v1
+KUN EI puhelin esillä
+Ilmoituksen alareunassa on nuoli, joka osoittaa pihalle. Alla on myös sähkeosoite.
+
+# v1
+> Soitat ilmoituksen numeroon: {puhelin} -> puhelin
+
+# v1
+> Seuraat nuolta pihalle. -> kartta
+
+# LUONNOS
+KUN yö
+> Seuraat nuolta pihalle, vaikka on pimeää. Nuoli hohtaa. -> kartta
+
+# v1
+> Kirjoitat sähkeen osoitteeseen: {sähköposti} -> sähkö
+
+> Palaa alkuun -> alku
+
+
+# ------------------------------------------------------------------------------------
+== kartta
+OTSIKKO: Olet hukassa
+
+Sillä välin kun katselit ympärillesi on hahmo kadonnut.
+
+# LUONNOS
+KUN täysikuu
+Sillä välin kun katselit ympärillesi on hahmo kadonnut. Täysikuu valaisee tyhjän paikan. Tyhjä paikka on hieman liian siisti.
+
+# LUONNOS
+KUN nähty
+Sillä välin kun katselit ympärillesi on hahmo kadonnut. Taas.
+
+Kävelet muutaman askeleen takaisin tehdasalueen pihalle ja huomaat toisessa kyltissä kartan.
+
+# LUONNOS
+KUN pimeää
+Kävelet muutaman askeleen takaisin tehdasalueen pihalle. Piha on pidempi kuin muistat. Toisessa kyltissä on kartta, ja se on onneksi siinä missä kartan kuuluukin olla.
+
+---
+Kyltin yläreunaan on maalattu osoite:
+
+NÄYTÄ kyltti
+{katu}
+{postinumero}
+
+Ehkä löydät vielä tien kotiin...
+
+---
+# Kartta-ruutu näyttää osoitteen ja reittilinkin itse (tiedostosta config.js).
+NÄYTÄ kartta
+
+---
+# v1
+> Seuraat kyltin nuolta. Reitti perille. -> reitti
+
+# LUONNOS
+KUN kiinni
+> Seuraat kyltin nuolta. Reitti perille. Ovi on tosin kiinni, mutta pihalla saa seistä. -> reitti
+
+# v1
+> Soitat ja kysyt tietä: {puhelin} -> puhelin
+
+# v1
+> Kirjoitat sähkeen osoitteeseen: {sähköposti} -> sähkö
+
+> Palaa alkuun -> alku
+
+
+# ------------------------------------------------------------------------------------
+== auki
+OTSIKKO: Ovi on raollaan
+
+# v1
+Ovi ei ole enää lukossa. Ikkunassa palaa valo ja sisältä kuuluu koneen hurina. Tai jonkin muun.
+
+# LUONNOS
+KUN ilta
+Ovi ei ole enää lukossa. Ikkunassa palaa valo ja sisältä kuuluva hurina on samassa tahdissa pulssisi kanssa. Se on varmaan sattumaa.
+
+# v1
+Liike on auki juuri nyt kello {sulkeminen} asti. Hahmo seisoo tiskin takana eikä vilkuile kelloa. Sinä vilkuilet.
+
+# LUONNOS
+KUN perjantai
+Liike on auki juuri nyt kello {sulkeminen} asti. On perjantai, ja hahmo näyttää siltä kuin se olisi ollut perjantai jo pitkään.
+
+# LUONNOS
+KUN palaava
+Liike on auki juuri nyt kello {sulkeminen} asti. Hahmo katsoo sinua ja sitten kelloa. Sitten taas sinua. Se muistaa sinut, tai ainakin oven.
+
+---
+# v1
+Lattialla on leluautoja. Ne on selvästi tarkoitettu lapsille. Todennäköisesti.
+
+# v1
+Karmin yläpuolella on kyltti:
+
+NÄYTÄ kyltti
+{katu}
+{postinumero}
+
+---
+# v1
+> Astut kohti kylttiä. Reitti perille. -> reitti
+
+# v1
+> Soitat sisään ennen kuin astut: {puhelin} -> puhelin
+
+# v1
+> Kurkkaat vielä ikkunasta ensin. -> ikkuna
+
+# v1
+> Kirjoitat sähkeen osoitteeseen: {sähköposti} -> sähkö
+
+> Palaa alkuun -> alku
+
+
+# ====================================================================================
+#  KIERTOTIET (sivupolkuja)
+#  Jokainen kiertotie näytetään vierailussa kerran ja jatkuu aina perille asti.
+# ====================================================================================
+
+KIERTOTIE lokki
+VÄLILLÄ alku -> ikkuna
+KUN arpa 15%
+OTSIKKO: Lokki
+
+# LUONNOS
+Lokki laskeutuu aidalle ja katsoo sinua. Se on katsonut tätä ikkunaa pidempään kuin sinä.
+---
+# LUONNOS
+Se ei sano mitään. Menet kuitenkin ikkunalle.
+
+
+KIERTOTIE varjo
+VÄLILLÄ alku -> *
+KUN täysikuu JA pimeää JA arpa 40%
+OTSIKKO: Varjo
+
+# LUONNOS
+Täysikuu menee pilven taakse. Varjosi jatkaa pihalla vielä hetken ennen kuin tulee perässä.
+
+
+KIERTOTIE grilli
+VÄLILLÄ alku -> *
+KUN juhannus JA arpa 50%
+OTSIKKO: Savu
+
+# LUONNOS
+Jossain grillataan. Savu kulkee pihan yli, vaikka et näe grillaajaa. Kävelet savun läpi.
+
+
+KIERTOTIE taas
+VÄLILLÄ alku -> *
+KUN palaava JA arpa 35%
+OTSIKKO: Piha on pidempi
+
+# LUONNOS
+Pihan ylitys kestää pidempään kuin viime kerralla. Askelmäärä on sama. Kello ei ole samaa mieltä.
+---
+# LUONNOS
+Jatkat matkaa kuin et olisi huomannut.
+
+
+KIERTOTIE maanantai
+VÄLILLÄ alku -> paperilappu
+KUN maanantai
+OTSIKKO: On maanantai
+
+# LUONNOS
+On maanantai. Lyijykynä näyttää siltä, että sekin tietää.
+
+
+KIERTOTIE kaamos
+VÄLILLÄ * -> *
+KUN kaamos JA arpa 30%
+OTSIKKO: Aurinko
+
+# LUONNOS
+Aurinko nousi ja laski jo. Sitä ei huomannut kukaan, ei edes aurinko.
+
+
+KIERTOTIE koputus
+VÄLILLÄ ikkuna -> ohjeet
+KUN kiinni JA arpa 30%
+OTSIKKO: Koputat
+
+# LUONNOS
+Koputat ikkunaan. Ei vastausta. Liike on kiinni, mikä on ehkä syy.
+
+
+KIERTOTIE kissa
+VÄLILLÄ ikkuna -> kartta
+KUN arpa 5%
+OTSIKKO: Kissa
+
+# LUONNOS (harvinainen, 5 %)
+Pihalla istuu kissa. Se katsoo sinua kuin olisi odottanut jo pitkään.
+---
+NÄYTÄ kissa
+
+# LUONNOS
+Se nousee ja kävelee pois kuin ei olisi odottanut ketään. Et ole varma, kumpi teistä on kummallisempi.
+
+
+# ====================================================================================
+#  JÄRJESTELMÄTEKSTIT (napit, lomakkeen viestit, alatunniste)
+# ====================================================================================
+== tekstit
+# Näihin kuuluu avain, kaksoispiste ja teksti. Avaimia ei saa nimetä uudelleen.
+# v1 (versiosta 1)
+jatka: JATKA
+takaisin: Edellinen ruutu
+ohita: OHITA
+lisätieto: Lisätieto
+piilota lisätieto: Piilota lisätieto
+tylsä: En jaksa pelata
+tietosuoja: Tietosuoja
+galaksi: Galaksin asennot
+lomake nimi: Nimi
+lomake klaani: Klaani (valinnainen)
+lomake yhteys: Sähkeosoite tai puhelin
+lomake viesti: Viesti
+lomake nappi: JÄTÄ VIESTI
+lomake tietosuoja: Tietosuoja: minne lappu menee
+reitti perille: Reitti perille
+tulos ok: Lappu on oven välissä. Joku, kuka tahansa, löytää sen.
+tulos virhe: Tuuli vei lapun. Yritä uudestaan tai soita karmiin kaiverrettuun numeroon.
+tulos virhe ilman puhelinta: Tuuli vei lapun. Yritä uudestaan tai kirjoita sähke suoraan paperin kulmassa olevaan osoitteeseen.
+tulos puuttuu: Lapusta puuttuu jotain. Nimi, yhteystieto ja viesti tarvitaan.
+tulos nopea: Raapustat liian nopeasti. Hahmo epäilee jotain. Odota hetki ja yritä uudestaan.
+tulos posti: Sähke lähtee omasta sähköpostiohjelmastasi. Paina siellä lähetä.
+tulos posti uudelleen: Ei auennut? Avaa sähke uudelleen.
+# LUONNOS (versio 2, Clauden kirjoittamat)
+lomake peruuta: Ei sittenkään
+varakohtaus: Tarina ei ladannut. Asiat ovat silti tässä.
+kartta sumussa: Kartta on sumussa. Osoite ja reitti ovat silti tässä.
+kartta ladataan: Kartta piirtyy_
+hahmo ladataan: LADATAAN HAHMOA

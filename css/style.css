@@ -1,0 +1,384 @@
+/* Oulun Paitapaino - same look as the original: blue, white Silkscreen, yellow headings, cyan links. */
+@font-face {
+  font-family: 'Silkscreen';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url(../assets/fonts/silkscreen-latin-ext.woff2) format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: 'Silkscreen';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url(../assets/fonts/silkscreen-latin.woff2) format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+/* ======================================================================================================
+   PALETTES. The engine (js/galaksi.js: palette()) picks ONE of these from the conditions and sets
+   <html data-paletti="name"> before the first paint. The first block (:root) is the DEFAULT, the brand:
+   blue background, white text, yellow headings, cyan links, red-on-white card. Most visitors see it most of the time.
+   Same style everywhere: flat, fully saturated colours, hard edges. Only the values below change.
+   Roles: --bg background, --fg text, --head headings and jokes, --link links, --card-bg/--card-fg the hours card,
+   --shadow card shadow, --eye eyes of the figure, --sun lightning and sun in the weather layer,
+   --logo-filter makes the black logo PNG readable (none or invert(1)), --fig-filter recolours the ASCII figure
+   (the engine builds #figf from --bg and --fg), and the "mood" numbers: --cps typing speed (characters/second),
+   --blink cursor blink period, --lamp period of the flickering address sign, --eye-dur period of the figure's
+   eyes, --rain rain density multiplier, --wind sideways drift of rain (columns per step), --bolt lightning chance multiplier.
+   To remove the palettes: delete everything but the :root block.  Contrast ratios are listed in docs/OHJE-TEKSTIT.md.
+   ====================================================================================================== */
+:root, [data-paletti="oletus"] {
+  --bg: #0000ff; --fg: #ffffff; --head: #ffff00; --link: #00ffff;
+  --card-bg: #ffffff; --card-fg: #ff0000; --shadow: #000000; --eye: #ff0000; --sun: #ffff00;
+  --logo-filter: none; --fig-filter: none;
+  --cps: 105; --blink: .8s; --lamp: 7s; --eye-dur: 5s; --rain: 1; --wind: 0; --bolt: 1;
+}
+/* overexposed: midsummer no-night, or a very high sun. Light, steady, nothing stormy */
+[data-paletti="ylivalotus"] {
+  --bg: #ffffff; --fg: #0000aa; --head: #aa0000; --link: #aa00aa;
+  --card-bg: #0000aa; --card-fg: #ffffff; --shadow: #000000; --eye: #aa0000; --sun: #aa5500;
+  --logo-filter: none; --fig-filter: url(#figf);
+  --cps: 140; --blink: .5s; --lamp: 16s; --eye-dur: 3s; --rain: 0; --wind: 0; --bolt: 0;
+}
+/* full moon, dark: black, white and pale. Slow and clear */
+[data-paletti="kuutamo"] {
+  --bg: #000000; --fg: #ffffff; --head: #ffff55; --link: #55ffff;
+  --card-bg: #ffffff; --card-fg: #aa0000; --shadow: #555555; --eye: #ff5555; --sun: #ffff55;
+  --logo-filter: invert(1); --fig-filter: url(#figf);
+  --cps: 80; --blink: 1.2s; --lamp: 11s; --eye-dur: 7s; --rain: .6; --wind: 0; --bolt: .3;
+}
+/* deep winter dark (kaamos): dark navy, default accents. Slow, drifting snow, the lamp is bad */
+[data-paletti="kaamos"] {
+  --bg: #000044; --fg: #ffffff; --head: #ffff00; --link: #00ffff;
+  --card-bg: #ffffff; --card-fg: #ff0000; --shadow: #000000; --eye: #ff0000; --sun: #ffff00;
+  --logo-filter: invert(1); --fig-filter: url(#figf);
+  --cps: 70; --blink: 1.4s; --lamp: 4s; --eye-dur: 9s; --rain: 1.4; --wind: 1; --bolt: 0;
+}
+/* the shop is open right now: the default with the yellow turned up (links, card) */
+[data-paletti="valaistu"] {
+  --bg: #0000ff; --fg: #ffffff; --head: #ffff00; --link: #ffff00;
+  --card-bg: #ffff00; --card-fg: #aa0000; --shadow: #000000; --eye: #ff0000; --sun: #ffff00;
+  --logo-filter: none; --fig-filter: none;
+  --cps: 120; --blink: .7s; --lamp: 14s; --eye-dur: 5s; --rain: .8; --wind: 0; --bolt: .5;
+}
+/* rare, seeded (a few visits in a hundred): magenta and green. Odd, fast, restless */
+[data-paletti="outo"] {
+  --bg: #aa00aa; --fg: #ffffff; --head: #55ff55; --link: #ffff55;
+  --card-bg: #55ff55; --card-fg: #aa00aa; --shadow: #000000; --eye: #ffff55; --sun: #ffff55;
+  --logo-filter: invert(1); --fig-filter: url(#figf);
+  --cps: 90; --blink: .3s; --lamp: 2.5s; --eye-dur: 1.5s; --rain: 1.6; --wind: -1; --bolt: 2;
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+
+html { -webkit-text-size-adjust: 100%; }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--fg);
+  font-family: 'Silkscreen', 'Courier New', monospace;
+  font-weight: 400;
+  font-size: 1.625rem;
+  line-height: 1.15;
+  text-transform: uppercase;
+}
+
+[hidden] { display: none !important; }
+h1, h2, p, ul, figure, blockquote { margin: 0; }
+h2, h1 { font-weight: 400; }
+
+.wrap { width: 100%; max-width: 976px; margin: 0 auto; padding: 0 16px; }
+
+/* ---------- skip link ---------- */
+.skip {
+  position: absolute; left: 8px; top: -100px; z-index: 10;
+  background: var(--head); color: var(--bg);
+  padding: 12px 16px; text-decoration: none; font-size: 18px;
+}
+.skip:focus { top: 8px; }
+
+
+/* ---------- the game: exactly one screen, never scrolls ---------- */
+html.game, html.game body { height: 100%; overflow: hidden; }
+.game #app {
+  position: fixed; left: 0; right: 0; top: 0;
+  height: 100%;            /* fallback */
+  height: 100vh;           /* fallback for browsers without dvh; the engine also sets an exact pixel height */
+  display: flex; flex-direction: column; overflow: hidden;
+}
+@supports (height: 100dvh) { .game #app { height: 100dvh; } }
+#fx { position: absolute; left: 0; top: 0; z-index: 0; pointer-events: none; }
+#app > header, #app > main, #app > footer { position: relative; z-index: 1; }
+#app.ready { animation: none; }
+
+.top { flex: none; padding: 10px 0 2px; }
+.logo { margin: 0; }
+.logo img {
+  -webkit-filter: var(--logo-filter); filter: var(--logo-filter);
+  display: block; width: 100%; max-width: 520px; height: auto; margin: 0 auto;
+  animation: drop .6s steps(5) both;
+}
+@keyframes drop { from { opacity: 0; transform: translateY(-40px); } to { opacity: 1; transform: none; } }
+
+main { flex: 1 1 0; min-height: 0; display: flex; flex-direction: column; }
+main:focus { outline: none; }
+#stage { flex: 1 1 0; min-height: 0; display: flex; flex-direction: column; position: relative; padding-top: 10px; padding-bottom: 6px; }
+
+h2 {
+  flex: none; color: var(--head); font-size: 2.5rem; line-height: 1.15;
+  margin: 0 0 .45em; overflow-wrap: anywhere;
+}
+h2:focus { outline: none; }
+.us { animation: blink calc(var(--blink) * 1.4) steps(1) infinite; }
+@keyframes blink { 50% { opacity: 0; } }
+
+.beat { flex: 1 1 0; min-height: 0; overflow: hidden; display: flex; flex-direction: column; position: relative; overflow-wrap: anywhere; }
+.beat > * { flex: none; }
+.beat.scrolly { overflow-y: auto; }
+p { margin: 0 0 1.15em; }
+.beat p.t { margin-bottom: 1.05em; }
+.beat.t1 p, .beat.t1 .choices li { margin-bottom: .6em; }
+.beat.t2 p, .beat.t2 .choices li { margin-bottom: .28em; }
+.beat.hold .choices, .beat.hold .more { visibility: hidden; }
+
+/* typing: the not-yet-typed text is laid out but invisible, so nothing jumps */
+.gh { visibility: hidden; }
+.cursor { display: inline-block; width: 0; height: 1em; position: relative; overflow: visible; vertical-align: baseline; }
+.cursor::before { content: ''; position: absolute; left: 1px; top: -.8em; width: .6em; height: .85em; background: var(--fg); animation: blink var(--blink) steps(1) infinite; }
+.typing .asidebtn { visibility: hidden; }
+
+/* "> JATKA" prompt */
+.more {
+  align-self: flex-start; margin: auto 0 0; padding: 4px 8px 4px 0; min-height: 36px;
+  background: transparent; border: 0; color: var(--fg); font: inherit; cursor: pointer;
+  animation: blink calc(var(--blink) * 1.25) steps(1) infinite;
+}
+.more.dl { animation: none; cursor: default; }
+.more:focus-visible { outline: 3px solid var(--head); outline-offset: 2px; }
+.more[hidden] { display: none; }
+
+/* links */
+a { color: var(--link); text-decoration: underline; }
+a:hover { color: var(--fg); }
+a:focus-visible, button:focus-visible, input:focus-visible, textarea:focus-visible {
+  outline: 3px solid var(--head); outline-offset: 3px;
+}
+
+/* choices: "> " prefix */
+.choices { list-style: none; padding: 0; margin: 0; overflow-wrap: anywhere; }
+.choices li { position: relative; padding-left: 1.1em; margin-bottom: 1.15em; animation: appear 1ms steps(1) both; }
+.choices li:last-child { margin-bottom: 0; }
+.choices li::before { content: ">"; position: absolute; left: 0; color: var(--fg); }
+.choices li:hover::before, .choices li:focus-within::before { animation: blink .6s steps(1) infinite; }
+@keyframes appear { from { opacity: 0; } to { opacity: 1; } }
+
+/* asides (tap-to-reveal jokes): a panel over the bottom of the text, so the layout never changes */
+.asidebtn {
+  position: relative; vertical-align: middle;
+  min-width: 44px; min-height: 44px; margin: -14px -4px -14px 2px;
+  padding: 0; background: transparent; border: 0; cursor: pointer;
+  color: var(--head); font: inherit; line-height: 1;
+}
+.asidebtn span {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 1.3em; height: 1.3em; border: 1px solid var(--head); font-size: .75em;
+}
+.asidebtn:hover span, .asidebtn[aria-expanded="true"] span { background: var(--head); color: var(--bg); }
+#aside {
+  position: absolute; left: 16px; right: 16px; bottom: 6px; z-index: 5; max-height: 80%; overflow: hidden;
+  padding: .3em .3em .3em .8em; border-left: 4px solid var(--head); background: var(--bg); color: var(--head);
+  overflow-wrap: anywhere;
+}
+#aside[hidden] { display: none; }
+
+/* sign (address) */
+.sign { align-self: flex-start; border: 1px solid var(--fg); padding: .6em .9em; margin: 0 0 1.15em; overflow-wrap: anywhere; animation: lamp var(--lamp) steps(1) infinite; }
+@keyframes lamp {
+  0%, 100% { opacity: 1; } 2% { opacity: 0; } 3% { opacity: 1; } 4% { opacity: 0; } 4.6% { opacity: 1; }
+}
+
+/* ---------- figure: revealed line by line, red eyes ---------- */
+.fig { flex: 1 1 0; min-height: 120px; display: flex; justify-content: center; align-items: center; overflow: hidden; }
+.figwrap { position: relative; width: 60%; height: 100%; }
+.figwrap img { display: block; width: 100%; height: 100%; -webkit-filter: var(--fig-filter); filter: var(--fig-filter); }
+.figwrap.rev img { -webkit-clip-path: inset(0 0 100% 0); clip-path: inset(0 0 100% 0); animation: figrev 2.4s steps(30) forwards; }
+@keyframes figrev { from { -webkit-clip-path: inset(0 0 100% 0); clip-path: inset(0 0 100% 0); } to { -webkit-clip-path: inset(0 0 0 0); clip-path: inset(0 0 0 0); } }
+.eye { position: absolute; top: 26.4%; width: 1.6%; height: .75%; background: var(--eye); }
+.eye.e1 { left: 48%; }
+.eye.e2 { left: 55.2%; }
+.figwrap.rev .eye { visibility: hidden; }
+.figwrap.moon-mid .eye { animation: eyeblink var(--eye-dur) steps(1) infinite; }
+.figwrap.moon-full .eye { transform: scale(1.5, 2.2); animation: eyepulse calc(var(--eye-dur) * .24) steps(1) infinite; }
+.figwrap.moon-new .eye { animation: eyedim calc(var(--eye-dur) * 1.4) steps(1) infinite; }
+@keyframes eyeblink { 0%, 92% { opacity: 1; transform: scale(1); } 93%, 96% { opacity: 0; } 97% { opacity: 1; transform: scale(1.8, 2.4); } 100% { transform: scale(1); } }
+@keyframes eyepulse { 0%, 100% { transform: scale(1.5, 2.2); } 50% { transform: scale(2.2, 3); } }
+@keyframes eyedim { 0%, 40% { opacity: 1; } 41%, 62% { opacity: 0; } 63%, 100% { opacity: 1; } }
+
+/* ---------- opening hours card ---------- */
+.card {
+  align-self: stretch; background: var(--card-bg); color: var(--card-fg); text-align: center;
+  font-size: 36px; box-shadow: 10px 10px 0 0 var(--shadow);
+  margin: 6px 14px 20px 6px; padding: 16px 12px 4px;
+}
+.card p { margin: 0 0 .8em; }
+.card .status { font-size: .55em; line-height: 1.3; }
+.stamp .card { animation: stamp .5s steps(5) both; }
+@keyframes stamp { from { transform: scale(1.6); opacity: 0; } 40% { opacity: 1; transform: scale(1.25); } to { transform: none; opacity: 1; } }
+
+/* ---------- form: one question per screen ---------- */
+.note-form { margin: 0; }
+.field { margin-bottom: 12px; }
+label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+input[type="text"], textarea {
+  display: block; width: 100%; height: 48px; margin: 0; padding: 0 19px;
+  background: transparent; color: var(--fg); border: 1px solid var(--fg); border-radius: 0;
+  font: inherit; font-size: 1.625rem; text-transform: uppercase; -webkit-appearance: none; appearance: none;
+}
+textarea { height: 96px; padding-top: 12px; resize: none; line-height: 1.15; }
+input::placeholder, textarea::placeholder { color: var(--fg); opacity: 1; }
+input:hover, textarea:hover { background: var(--bg); }
+input:focus, textarea:focus { border-color: var(--link); }
+input.bad, textarea.bad { border-color: var(--head); }
+.hp { position: absolute; left: -9999px; width: 1px; height: 1px; overflow: hidden; }
+.btn {
+  display: block; width: 100%; height: 48px; padding: 0; cursor: pointer;
+  background: transparent; color: var(--fg); border: 1px solid var(--fg); border-radius: 0;
+  font: inherit; font-size: 1.625rem; text-transform: uppercase;
+}
+.btn:hover, .btn:active { background: var(--link); color: var(--bg); }
+.btn[disabled] { opacity: .6; cursor: wait; }
+.btn[hidden] { display: none; }
+.formstatus {
+  margin: 12px 0 0; padding: .1em 0 .1em .8em;
+  border-left: 4px solid var(--head); color: var(--head); font-size: 1.25rem; line-height: 1.3;
+}
+.formstatus[hidden] { display: none; }
+.note-form.last .privacy { display: block; }
+.skipq { display: inline-flex; align-items: center; min-height: 44px; margin: 6px 0 0; padding: 0; background: transparent; border: 0; color: var(--link); font: inherit; font-size: 14px; text-decoration: underline; cursor: pointer; }
+.privacy { display: none; font-size: 14px; margin: 8px 0 0; }
+
+/* ---------- map ---------- */
+.mapscreen { flex: 1 1 0; min-height: 150px; display: flex; flex-direction: column; }
+.mapscreen > * { flex: none; }
+.mapaddr { margin: 0 0 .4em; }
+.maproute { margin: 0 0 .7em; }
+.mapbox { flex: 1 1 0 !important; min-height: 60px; position: relative; border: 1px solid var(--fg); overflow: hidden; }
+.mapfog { position: absolute; left: 0; top: 0; right: 0; bottom: 0; margin: 0; padding: 12px; display: flex; align-items: center; justify-content: center; text-align: center; color: var(--head); }
+iframe.map { position: absolute; left: 0; top: 0; width: 100%; height: 100%; border: 0; background: var(--bg); }
+.mapbox.ready .mapfog { display: none; }
+.mapbox.ready::after { content: ''; position: absolute; left: 0; right: 0; top: 0; height: 2px; background: var(--fg); pointer-events: none; animation: scan 5s steps(30) infinite; }
+@keyframes scan { from { top: 0; } to { top: 100%; } }
+
+/* ---------- a surprise ---------- */
+.catrow { height: 1.6em; position: relative; margin-bottom: .6em; overflow: hidden; }
+.cat { position: absolute; left: 0; top: 0; white-space: nowrap; }
+.catwalk .cat { animation: catwalk 7s steps(34) forwards; }
+@keyframes catwalk { from { left: -8em; } to { left: 100%; } }
+
+/* ---------- screen wipe between scenes (stepped) ---------- */
+#stage.wipe { animation: wipe .32s steps(8) both; }
+@keyframes wipe { from { -webkit-clip-path: inset(0 0 100% 0); clip-path: inset(0 0 100% 0); } to { -webkit-clip-path: inset(0 0 0 0); clip-path: inset(0 0 0 0); } }
+
+/* ---------- boot ---------- */
+#boot { position: fixed; left: 0; top: 0; right: 0; bottom: 0; z-index: 20; background: var(--bg); padding: 24px 16px; }
+#boot[hidden] { display: none; }
+#boot .bl { margin: 0 0 .7em; max-width: 976px; margin-left: auto; margin-right: auto; }
+#boot .cursor::before { top: -.8em; }
+
+/* ---------- footer row: small, always reachable ---------- */
+.foot { flex: none; padding: 0 0 4px; padding-bottom: calc(4px + env(safe-area-inset-bottom, 0px)); font-size: 14px; }
+.ovnote { margin: 0 auto; font-size: 12px; line-height: 1.3; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ovnote[hidden] { display: none; }
+.ovnote a { color: var(--head); text-decoration: none; }
+.footrow { display: flex; align-items: center; min-height: 36px; }
+.footlinks { list-style: none; padding: 0; margin: 0 0 0 auto; display: flex; align-items: center; }
+.footlinks li { margin-left: 18px; }
+.footlinks a { display: inline-flex; align-items: center; min-height: 36px; }
+.footlinks .gal { text-decoration: none; padding: 0 4px; }
+.prev { width: 36px; height: 36px; padding: 0; background: transparent; border: 0; color: var(--fg); font: inherit; font-size: 18px; cursor: pointer; }
+.prev:disabled { cursor: default; }
+
+/* on-screen keyboard: give the question all the room */
+.kbd .top, .kbd #otsikko, .kbd .foot { display: none; }
+.kbd #beat { overflow-y: auto; }
+
+/* no JavaScript: a normal page */
+html:not(.js) #app { position: static; height: auto; display: block; }
+html:not(.js) .foot { display: none; }
+html:not(.js) #formhold, html:not(.js) #fx { display: none; }
+.panicbox { padding-top: 24px; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+
+/* ---------- plain pages (tylsa, tietosuoja, 404) ---------- */
+.plain h1.page {
+  color: var(--head); font-size: 2.5rem; line-height: 1.15; margin: 0 0 20px; overflow-wrap: anywhere;
+}
+.plain .scene { display: block; padding: 24px 0 40px; }
+.plain .top { min-height: 240px; display: flex; align-items: center; }
+.plain .top .wrap { width: 100%; }
+.plain .logo img { max-width: 944px; }
+.plain .skip + * {}
+.plain h2 { font-size: 1.625rem; margin: 1.6em 0 .5em; }
+.plain dl { margin: 0 0 1.15em; }
+.plain dt { color: var(--head); margin-top: 1em; }
+.plain dd { margin: .2em 0 0; overflow-wrap: anywhere; }
+.draft {
+  border: 1px solid var(--fg); padding: .6em .9em; margin-bottom: 1.4em; color: var(--head);
+}
+.plain ul.plainlist { padding-left: 1.2em; margin: 0 0 1.15em; }
+.plain ul.plainlist li { margin-bottom: .5em; overflow-wrap: anywhere; }
+
+
+/* ---------- tablet / phone ---------- */
+@media (max-width: 975px) {
+  h2, .plain h1.page { font-size: 2rem; }
+  .plain .top { min-height: 180px; }
+}
+@media (max-width: 575px) {
+  body { font-size: 1.1875rem; line-height: 1.3; }
+  h2, .plain h1.page { font-size: 1.75rem; line-height: 1.2; }
+  .plain h2 { font-size: 1.1875rem; }
+  .plain .top { min-height: 96px; }
+  .plain .scene { padding: 20px 0 40px; }
+  .card { font-size: 24px; margin-right: 16px; padding: 12px 8px 2px; box-shadow: 8px 8px 0 0 var(--shadow); }
+  input[type="text"], textarea, .btn { font-size: 1.1875rem; padding-left: 14px; padding-right: 14px; }
+  .btn { padding: 0; }
+  .formstatus { font-size: 1rem; }
+  .asidebtn span { font-size: .8em; }
+  .foot { font-size: 12px; }
+  .footlinks li { margin-left: 12px; }
+}
+@media (max-height: 520px) {
+  .top { padding-top: 4px; }
+  .logo img { max-width: 300px; }
+}
+@media (min-width: 700px) {
+  .logo img { max-width: 560px; }
+}
+
+/* palette change during a visit: stepped, never smooth */
+.palanim, .palanim * { transition: color .3s steps(3), background-color .3s steps(3), border-color .3s steps(3) !important; }
+
+/* forced colours / high contrast: drop the decoration, let the system colours rule */
+@media (forced-colors: active) {
+  #fx { display: none; }
+  .eye { forced-color-adjust: none; background: Highlight; }
+  .card { border: 2px solid CanvasText; }
+  .cursor::before { background: CanvasText; }
+}
+@media (prefers-contrast: more) { #fx { display: none; } }
+
+/* ---------- reduced motion: no typing (engine), no rain (engine), no blinking, no flashing ---------- */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
+  .figwrap.rev img { -webkit-clip-path: none; clip-path: none; }
+  #fx { display: none; }
+}
+
+/* keep the phone number on one line */
+[data-config="phone"] { white-space: nowrap; }
+
+/* galaksi.html (testing tool) */
+.tool .scene { display: block; padding: 20px 0 40px; }

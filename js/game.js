@@ -291,6 +291,7 @@
         }
         if (it.type === 'show' && it.what === 'portrait' && it.person) { add(IMG + it.person.img + '.jpg'); }
         if (it.type === 'show' && it.what === 'omistaja') { add(IMG + 'omistaja.jpg'); }
+        if (it.type === 'ending') { add(IMG + 'leima.jpg'); }
       });
     });
     (model.casts || []).forEach(function (c) { var p = story.people[c.who]; if (p) { add(IMG + p.img + '-koko-pieni.png'); } });
@@ -1233,9 +1234,10 @@
         var q = items[k], qw = q.r - q.l, qh = q.b - q.t;
         if (q.soft || q.cast || qw >= 44 || qw * qh >= 44 * 44) { continue; }
         var want = Math.min(hh, Math.ceil(44 * 44 / Math.max(qw, 1))), grow = (want - qh) / 2, test = { l: q.l, r: q.r, t: Math.max(0, q.t - grow), b: Math.min(hh, q.b + grow) }, clash = false, m2;
-        for (m2 = 0; m2 < items.length; m2++) { if (m2 !== k && !items[m2].soft && hitOverlap(test, items[m2])) { clash = true; } }
+        for (m2 = 0; m2 < items.length; m2++) { if (m2 !== k && !items[m2].soft && !items[m2].cast && hitOverlap(test, items[m2])) { clash = true; } }
         if (!clash) { q.t = test.t; q.b = test.b; }
       }
+      resolveHits(items);
       for (k = 0; k < items.length; k++) {
         var it = items[k];
         it.el.style.left = it.l + 'px'; it.el.style.top = it.t + 'px'; it.el.style.width = Math.max(1, it.r - it.l) + 'px'; it.el.style.height = Math.max(1, it.b - it.t) + 'px';
@@ -1428,6 +1430,7 @@
     if (beat.querySelector('.catrow')) { beat.classList.add('catwalk'); }
     var dn = beat.querySelector('.dice .dn');
     var content = function () {
+      beat.classList.remove('rollhold');
       if (hasText && !seen) {
         beat.classList.add('hold');
         startTyping(function () { beat.classList.remove('hold'); page.typed = true; focusChoices(isChoices); updateMask(); });
@@ -1436,7 +1439,7 @@
         focusChoices(isChoices);
       }
     };
-    if (dn && !seen) { if (hasText) { beat.classList.add('hold'); } rollAnim(dn, content); } else { content(); }
+    if (dn && !seen) { if (hasText) { beat.classList.add('hold'); beat.classList.add('rollhold'); } rollAnim(dn, content); } else { content(); }
     if (isAsk) {
       var f = form.elements[curAskKind()];
       if (f && !('ontouchstart' in window) && !beat.classList.contains('hold')) { setTimeout(function () { try { f.focus(); } catch (e) { /* ignore */ } }, 30); }

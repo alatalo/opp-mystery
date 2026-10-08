@@ -142,7 +142,7 @@ html.game, html.game body { height: 100%; overflow: hidden; }
   display: block; width: 100%; max-width: 520px; height: auto; margin: 0 auto;
   animation: drop .6s steps(5) both;
 }
-.logowrap { position: relative; width: 100%; max-width: 520px; margin: 0 auto; }
+.logowrap { display: block; position: relative; width: 100%; max-width: 520px; margin: 0 auto; }
 .logowrap img { max-width: none; }
 .logolink { display: block; position: relative; }
 /* tap target of at least 44px high even when the logo is drawn small (extends beyond the logo, no layout change) */
@@ -574,3 +574,5 @@ p.dice { display: flex; flex-direction: column; align-items: center; margin: aut
 .asideclose:hover, .asideclose:focus-visible { background: var(--head); color: var(--bg); }
 .hudi { padding: 0 4px; border: 1px solid var(--fg); font-size: 10px; line-height: 12px; margin: 0 3px; }
 .hudi[hidden] { display: none; }
+
+.beat.rollhold p.t { visibility: hidden; }

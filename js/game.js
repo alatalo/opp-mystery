@@ -10,9 +10,9 @@
   var G = P.galaksi, S = P.story;
   var Fx = window.PaitaFx || null;
   // every call into the decoration layer is guarded: an exception there turns the effects off, never the story
-  function fx(name, a, b, c) {
+  function fx(name, a, b, c, d, e) {
     if (!Fx) { return; }
-    try { return Fx[name](a, b, c); } catch (e) { try { Fx.disable(); } catch (e2) { /* ignore */ } Fx = null; }
+    try { return Fx[name](a, b, c, d, e); } catch (e) { try { Fx.disable(); } catch (e2) { /* ignore */ } Fx = null; }
   }
   var START = 'alku';
   var pageLoaded = Date.now();
@@ -27,7 +27,7 @@
   else if (mq && mq.addListener) { mq.addListener(function () { reduced = mq.matches; fx('setReduced', reduced); }); }
   fx('setReduced', reduced);
 
-  var report = { scrollingChoices: [], tooTall: [], errors: [] };
+  var report = { scrollingChoices: [], tooTall: [], errors: [], merged: [] };
   P.report = report;
 
   /* ---------- texts ---------- */
@@ -53,7 +53,7 @@
     'leima': 'PRINTED IN PIKISAARI 1992',
     'jarki': 'JÄRKI', 'loput': 'LOPUT', 'loppu': 'LOPPU', 'loydetty': 'Löydetty', 'loppu kehote': 'Joku toinen reitti voi olla olemassa.',
     'esine lauta': 'LAUTA', 'esine kyna': 'LYIJYKYNÄ',
-    'mene': 'MENE', 'sulje': 'SULJE', 'kuva ohje': 'KOSKETA', 'katso ei mitaan': 'Ei mitään erityistä.',
+    'mene': 'MENE', 'sulje': 'SULJE', 'kuva ohje': 'KOSKETA', 'kuva ohje alku': 'KOSKETA KUVASSA OLEVAA KOHTAA', 'kuva ohje hiiri': 'KLIKKAA KUVASSA OLEVAA KOHTAA', 'katso ei mitaan': 'Ei mitään erityistä.',
     'hyvasti': 'Hyvästi', 'puhut': 'Puhut: ', 'puhu otsikko': 'Puhutaan',
     'alt avaus': 'Vaalea tehdasrakennus yöllä pihan takana. Yksi alakerran ikkuna on valaistu, ja ovi on kaarevan lipan alla.',
     'alt hahmo': 'ASCII-merkeistä koottu kuva: hupullinen hahmo lasin takana.',
@@ -201,6 +201,7 @@
       case 'status': return P.statusText();
       case 'name': return cfg.name;
       case 'kuu': return d.moon;
+      case 'aika': return ctx.tod;
       case 'kello': return ctx.now.h + ':' + (ctx.now.mi < 10 ? '0' : '') + ctx.now.mi;
       case 'viikonpaiva': return ctx.weekday;
       case 'aurinko': return d.sun;
@@ -267,8 +268,36 @@
     setTimeout(function () { if (!finished) { finished = true; cb(); } }, 2500);
   }
   function portraitView() { return window.innerHeight > window.innerWidth; }
+  /* The landscape or the portrait picture is chosen by the SHAPE of the picture area (the text column), not by the device orientation:
+     whichever shows its focus box (KUVA ... RAJAUS) larger. */
+  var NOMINAL = { 'avaus': [1200, 800], 'avaus-pysty': [800, 1100], 'kaytava': [1200, 800], 'kaytava-pysty': [800, 1100] };
+  var picOrient = {};
+  var FULL = [0, 0, 100, 100];
+  function focusOf(what, key) {
+    var pc = story && story.pictures[what], f = pc && pc.focus && (pc.focus[key] || (key.charAt(0) === 's' ? pc.focus.l : null));
+    return f || FULL;
+  }
+  function coverScale(iw, ih, F, W, H) {
+    var fw = Math.max(1, F[2] / 100 * iw), fh = Math.max(1, F[3] / 100 * ih);
+    var s = Math.min(W / fw, H / fh);
+    s = Math.max(s, Math.min(W / iw, H / fh));
+    return Math.min(s, 1.5);
+  }
+  function picArea() {
+    var W = beat.clientWidth || window.innerWidth, H = (beat.clientHeight || window.innerHeight) * 0.6;
+    return [W, H];
+  }
+  function isPortPic(what) {
+    if (what !== 'avaus' && what !== 'kaytava') { return false; }
+    if (picOrient[what] !== undefined) { return picOrient[what]; }
+    var a = picArea(), dl = imgDim[IMG + what + '.jpg'] || { w: NOMINAL[what][0], h: NOMINAL[what][1] }, dp = imgDim[IMG + what + '-pysty.jpg'] || { w: NOMINAL['' + what + '-pysty'][0], h: NOMINAL['' + what + '-pysty'][1] };
+    var port = coverScale(dp.w, dp.h, focusOf(what, 'p'), a[0], a[1]) > coverScale(dl.w, dl.h, focusOf(what, 'l'), a[0], a[1]) * 1.02;
+    if (imgOk[IMG + what + '-pysty.jpg'] === false) { port = false; } else if (imgOk[IMG + what + '.jpg'] === false) { port = true; }
+    picOrient[what] = port;
+    return port;
+  }
   function sceneImages(what, stageNo) {
-    if (what === 'avaus' || what === 'kaytava') { return portraitView() ? [IMG + what + '-pysty.jpg', IMG + what + '.jpg'] : [IMG + what + '.jpg', IMG + what + '-pysty.jpg']; }
+    if (what === 'avaus' || what === 'kaytava') { return isPortPic(what) ? [IMG + what + '-pysty.jpg', IMG + what + '.jpg'] : [IMG + what + '.jpg', IMG + what + '-pysty.jpg']; }
     if (what === 'hahmo') { return [IMG + 'hahmo-' + stageNo + '.jpg', IMG + 'hahmo.jpg']; }
     if (what === 'leima') { return [IMG + 'leima.jpg']; }
     if (what === 'ovi') { return [IMG + 'ovi.jpg']; }
@@ -304,8 +333,9 @@
     if (!pic) { return out; }
     pic.spots.forEach(function (sp) {
       if (sp.cond && G.match(sp.cond, ctx, 'kohta.' + what + '.' + sp.id) < 0) { return; }
-      if (portraitView() && sp.rects.p === false) { return; }
-      var r = (what === 'hahmo' && sp.rects['s' + ctx.stage]) || (portraitView() && sp.rects.p) || sp.r;
+      var pv = isPortPic(what);
+      if (pv && sp.rects.p === false) { return; }
+      var r = (what === 'hahmo' && sp.rects['s' + ctx.stage]) || (pv && sp.rects.p) || sp.r;
       out.push({ id: sp.id, name: sp.name, look: sp.look, looks: sp.looks, third: sp.third, action: sp.action, hidden: sp.hidden, soft: sp.soft, go: sp.go, r: r });
     });
     return out;
@@ -316,7 +346,7 @@
     model.casts.forEach(function (c) {
       var p = story.people[c.who], pl = pic.places[c.place];
       if (!p || !pl || !imgOk[IMG + p.img + '-koko-pieni.png']) { return; }
-      var pos = portraitView() ? pl.p : (pl.l || pl.p);
+      var pos = isPortPic(what) ? pl.p : (pl.l || pl.p);
       if (!pos) { return; }
       out.push({ who: c.who, person: p, x: pos[0], y: pos[1], h: pos[2], src: IMG + p.img + '-koko-pieni.png' });
     });
@@ -492,6 +522,20 @@
     return found || sp.action || T('mene');
   }
 
+  function focusFor(b, what, src, ctx) {
+    if (what === 'portrait') { return (b.owner ? focusOf('omistaja', 'l') : (b.person && b.person.focus)) || FULL; }
+    if (what === 'hahmo') { return focusOf('hahmo', src === IMG + 'hahmo.jpg' ? 'l' : 's' + ctx.stage); }
+    if (what === 'avaus' || what === 'kaytava') { return focusOf(what, /-pysty\.jpg$/.test(src) ? 'p' : 'l'); }
+    if (what === 'ovi') { return focusOf('ovi', 'l'); }
+    return FULL;
+  }
+  var mouseLike = !!(window.matchMedia && window.matchMedia('(hover: hover) and (pointer: fine)').matches);
+  function idleHint() { return !mem.flags.hinted ? T(mouseLike ? 'kuva ohje hiiri' : 'kuva ohje alku') : T('kuva ohje'); }
+
+  /* A picture is a window (.picwrap, full width of the text column) onto the image (.picin, scaled so that the focus box fits and
+     positioned so that it is centred). Hotspots, standing figures, the lit window and the eyes are children of .picin and are placed
+     in percentages of the image, so they stay registered with any crop. The moon, the date stamp, the pumpkin and the wind-blown bag
+     are decoration of the window (they live in whatever sky remains). */
   function renderPicture(b) {
     var ctx = ctxNow, what = b.what, srcList, src;
     if (what === 'portrait') { srcList = [IMG + b.person.img + '.jpg']; } else { srcList = sceneImages(what, ctx.stage); }
@@ -502,16 +546,18 @@
     }
     var dim = imgDim[src] || { w: 1200, h: 800 };
     var d = el('div', 'pic flex pic-' + what + (b.optional ? ' opt' : '') + (what === 'portrait' ? ' person' : ''));
-    var wrap = el('div', 'picwrap'), img = el('img', 'picimg');
-    wrap.setAttribute('data-w', String(dim.w)); wrap.setAttribute('data-h', String(dim.h));
+    var wrap = el('div', 'picwrap'), inner = el('div', 'picin'), img = el('img', 'picimg');
+    var F = focusFor(b, what, src, ctx), port = /-pysty\.jpg$/.test(src);
+    wrap.setAttribute('data-w', String(dim.w)); wrap.setAttribute('data-h', String(dim.h)); wrap.setAttribute('data-f', F.join(','));
     img.src = src; img.width = dim.w; img.height = dim.h;
     img.alt = what === 'portrait' ? (b.person.alt || b.person.name || T('alt henkilo')) : T('alt ' + what);
     if (b.owner) { d.className += ' owner'; }
     var fb = what === 'hahmo' && src === IMG + 'hahmo.jpg';
     if (fb) { wrap.className += ' fb s' + ctx.stage; }
     if (what === 'hahmo') { wrap.className += ' st' + ctx.stage + (ctx.moon === 'täysi' ? ' moon-full' : ctx.moon === 'uusi' ? ' moon-new' : ' moon-mid'); }
-    wrap.appendChild(img);
-    // decoration that lives over the picture
+    if (port) { wrap.className += ' port'; }
+    inner.appendChild(img);
+    wrap.appendChild(inner);
     if (what === 'avaus') {
       var mc = el('canvas', 'moon'); mc.width = 23; mc.height = 23; mc.setAttribute('aria-hidden', 'true');
       mc.setAttribute('data-age', ctx.moonAge.toFixed(3)); mc.setAttribute('data-full', ctx.moon === 'täysi' ? '1' : '0');
@@ -519,11 +565,11 @@
       var st = el('p', 'stamp', stampText(ctx)); st.setAttribute('aria-hidden', 'true'); wrap.appendChild(st);
       var win = (story.pictures.avaus && story.pictures.avaus.spots.filter(function (s) { return s.id === 'ikkuna'; })[0]) || null;
       if (win) {
-        var wr = (portraitView() && win.rects.p) || win.r;
+        var wr = (port && win.rects.p) || win.r;
         var lamp = el('i', 'lamp' + (ctx.open ? '' : ' bad'));
         lamp.style.left = (wr[0] + wr[2] * 0.12) + '%'; lamp.style.top = (wr[1] + wr[3] * 0.12) + '%';
         lamp.style.width = (wr[2] * 0.76) + '%'; lamp.style.height = (wr[3] * 0.76) + '%';
-        lamp.setAttribute('aria-hidden', 'true'); wrap.appendChild(lamp);
+        lamp.setAttribute('aria-hidden', 'true'); inner.appendChild(lamp);
       }
       var chOn = ctx.chance === 'kaikki' ? true : (ctx.chance === 'ei' ? false : G.roll(ctx.seed, 'piha') < 14);
       if (chOn) { var bag = el('i', 'bag'); bag.setAttribute('aria-hidden', 'true'); wrap.appendChild(bag); }
@@ -536,7 +582,7 @@
       for (k = 0; k < 2; k++) {
         var ey = el('i', 'eye e' + (k + 1)); ey.setAttribute('aria-hidden', 'true');
         ey.style.left = (eg[k][0] - eg[2] / 2) + '%'; ey.style.top = eg[k][1] + '%'; ey.style.width = eg[2] + '%'; ey.style.height = (eg[2] * 0.5) + '%';
-        wrap.appendChild(ey);
+        inner.appendChild(ey);
       }
     }
     // standing figures: cut-outs pasted over the picture, popping in one by one
@@ -545,32 +591,28 @@
       var ci2 = el('img', 'cast'); ci2.src = c.src; ci2.alt = ''; ci2.setAttribute('aria-hidden', 'true');
       ci2.style.left = c.x + '%'; ci2.style.bottom = (100 - c.y) + '%'; ci2.style.height = c.h + '%';
       ci2.style.animationDelay = (500 + ci * 450) + 'ms';
-      wrap.appendChild(ci2);
+      inner.appendChild(ci2);
       spots.push({ id: 'hahmo-' + c.who, name: c.person.name, look: c.person.look, looks: c.person.looks || [c.person.look], go: { kind: 'person', id: c.who },
         r: [c.x - c.h * 0.2, c.y - c.h, c.h * 0.4, c.h], cast: true, person: c.person, ar: dim.w / dim.h });
     });
-    // hotspots (buttons: keyboard and touch work the same way). A tap only selects: the caption panel under the picture
-    // names it, shows its look line and offers ONE action button; the action is a second, clearly labelled tap.
+    // hotspots (buttons: keyboard, mouse and touch work the same way). A tap selects: the text slot under the picture shows the look line and ONE big
+    // action button; tapping the same hotspot again does the action. A hotspot without a look line acts at once.
     // stacking order: background hotspots (furniture) lowest, then characters, then everything else (window, door win taps)
     spots.sort(function (x, y) { var d = (x.soft ? 0 : x.cast ? 1 : 2) - (y.soft ? 0 : y.cast ? 1 : 2); return d || (y.r[2] * y.r[3] - x.r[2] * x.r[3]); });
     spots.forEach(function (sp) {
       sp.key = tkey(sp.go);
       sp.label = spotActionLabel(sp);
       curSpots.push(sp);
-      var bt = el('button', 'spot' + (sp.cast ? ' castspot' : '') + (sp.hidden ? ' secret' : ''));
+      var bt = el('button', 'spot' + (sp.cast ? ' castspot' : '') + (sp.hidden ? ' secret' : '') + (sp.go ? ' go' : ''));
       bt.type = 'button'; bt.setAttribute('data-si', String(curSpots.length - 1)); bt.setAttribute('data-k', sp.key || '');
       bt.setAttribute('aria-label', sp.name);
       bt.style.left = sp.r[0] + '%'; bt.style.top = sp.r[1] + '%'; bt.style.width = sp.r[2] + '%'; bt.style.height = sp.r[3] + '%';
-      wrap.appendChild(bt);
+      inner.appendChild(bt);
     });
+    if (what === 'avaus') { var strip = el('div', 'skystrip'); strip.setAttribute('aria-hidden', 'true'); d.appendChild(strip); }
     d.appendChild(wrap);
     if (spots.length) {
-      var panel = el('div', 'cappanel');
-      panel.appendChild(el('p', 'capname', T('kuva ohje')));
-      panel.appendChild(el('p', 'caplook', ''));
-      var act = el('button', 'capact'); act.type = 'button'; act.hidden = true;
-      panel.appendChild(act);
-      d.appendChild(panel);
+      var bar = el('div', 'capbar'); bar.appendChild(el('span', 'capname', idleHint())); d.appendChild(bar);
       picState = { sel: -1 };
       d.setAttribute('data-spots', String(spots.length));
     }
@@ -595,7 +637,7 @@
     beat.innerHTML = '';
     beat.className = 'beat' + (opts.tight ? ' t' + opts.tight : '') + (opts.scroll ? ' scrolly' : '');
     curSpots = []; picState = null;
-    var i, b, p, ul, li, a;
+    var i, b, p, ul, li, a, slot = null;
     var ctxStatic = ctxNow;
     for (i = 0; i < blocks.length; i++) {
       b = blocks[i];
@@ -603,8 +645,9 @@
         p = el('p', 't' + (b.say ? ' say' : ''));
         appendInline(p, b.nodes);
         if (b.aside) { p.appendChild(document.createTextNode(' ')); p.appendChild(makeAsideBtn(plainOf(flatten(b.aside, ctxStatic)))); }
-        beat.appendChild(p);
+        (slot || beat).appendChild(p);
       } else if (b.k === 'choices') {
+        slot = null;
         ul = el('ul', 'choices');
         b.list.forEach(function (c, idx) {
           li = el('li', c.asked ? 'asked' : null);
@@ -620,7 +663,11 @@
         beat.appendChild(ul);
       } else if (b.k === 'show') {
         var sh = renderShow(b);
-        if (sh) { beat.appendChild(sh); reservePanel(sh); }
+        slot = null;
+        if (sh) {
+          beat.appendChild(sh);
+          if (sh.getAttribute && sh.getAttribute('data-spots')) { slot = makeSlot(); beat.appendChild(slot); }
+        }
       } else if (b.k === 'dice') {
         p = el('p', 'dice');
         p.appendChild(el('span', 'dl', (T('heitto ' + b.key) || (cap1(b.key) + T('heitto'))) + ': '));
@@ -635,6 +682,7 @@
         if (b.kind === 'vahvista') { form.querySelector('.formstatus').style.visibility = 'hidden'; }
       }
     }
+    var sl = beat.querySelector('.slot'); if (sl) { reserveSlot(sl); }
     if (!hasChoices(blocks) && !opts.noMore) {
       var more = el('button', 'more');
       more.type = 'button';
@@ -846,7 +894,7 @@
 
   function pageChoices(blocks, pages, id) {
     var lv;
-    for (lv = 0; lv <= 2; lv++) { if (fitsBlocks(blocks, lv)) { pages.push(mkPage(blocks, lv)); return; } }
+    for (lv = 0; lv <= 3; lv++) { if (fitsBlocks(blocks, lv)) { pages.push(mkPage(blocks, lv)); return; } }   // up to the 88 % layout: one tap fewer beats slightly smaller type
     var leads = blocks.filter(function (b) { return !blockIsChoices(b); });
     var ch = blocks.filter(blockIsChoices);
     if (leads.length) { pageText(leads, pages); }
@@ -858,7 +906,9 @@
     while (start < total) {
       cnt = total - start;
       while (cnt > 1 && !fitsBlocks([{ k: 'choices', list: list.slice(start, start + cnt), more: start + cnt < total }], 2)) { cnt--; }
-      pages.push(mkPage([{ k: 'choices', list: list.slice(start, start + cnt), more: start + cnt < total }], 2));
+      var lvp = 2;
+      if (cnt === 1) { for (lvp = 2; lvp < MAXLV; lvp++) { if (fitsBlocks([{ k: 'choices', list: list.slice(start, start + 1), more: start + 1 < total }], lvp)) { break; } } }   // one long choice: tighter type before it overflows
+      pages.push(mkPage([{ k: 'choices', list: list.slice(start, start + cnt), more: start + cnt < total }], lvp));
       start += cnt;
     }
     k = pages.length;
@@ -872,6 +922,37 @@
     if (hasChoices(blocks)) { pageChoices(blocks, pg, id); } else { pageText(blocks, pg); }
     return pg;
   }
+  /* ---------- fewer taps: fit-based merging (no text is changed) ---------- */
+  function onlyText(pg) { return pg.blocks.length > 0 && pg.blocks.every(function (b) { return b.k === 'p'; }); }
+  function textLen(pg) { var n = 0; pg.blocks.forEach(function (b) { if (b.k === 'p') { n += plainOf(b.nodes).length; } }); return n; }
+  var SHORT_PAGE = 90;   // characters: about one short sentence
+  // A beat break that would leave a screen with one short sentence is dropped when the neighbouring text fits on the same screen.
+  function mergeShort(pages, id) {
+    var i = 0, nxt, cand;
+    while (i < pages.length) {
+      var pg = pages[i];
+      if (onlyText(pg) && textLen(pg) <= SHORT_PAGE && i + 1 < pages.length && onlyText(pages[i + 1])) {
+        cand = pg.blocks.concat(pages[i + 1].blocks);
+        if (fitsBlocks(cand, 0)) { nxt = mkPage(cand, 0); report.merged.push(id + ' @' + window.innerWidth + 'x' + window.innerHeight + ': ' + plainOf(pg.blocks[0].nodes).slice(0, 40)); pages.splice(i, 2, nxt); continue; }
+      }
+      if (onlyText(pg) && textLen(pg) <= SHORT_PAGE && i > 0 && onlyText(pages[i - 1])) {
+        cand = pages[i - 1].blocks.concat(pg.blocks);
+        if (fitsBlocks(cand, 0)) { nxt = mkPage(cand, 0); report.merged.push(id + ' @' + window.innerWidth + 'x' + window.innerHeight + ': ' + plainOf(pg.blocks[0].nodes).slice(0, 40)); pages.splice(i - 1, 2, nxt); i--; continue; }
+      }
+      i++;
+    }
+    return pages;
+  }
+  // The last text before the choices shares the screen with them when both fit: the choices appear as soon as the typing ends
+  function mergeIntoChoices(pages, id) {
+    var n = pages.length, last = pages[n - 1], prev = pages[n - 2], lv, cand;
+    if (n < 2 || !onlyText(prev) || !hasChoices(last.blocks) || last.blocks.some(function (b) { return b.more; }) || last.blocks.some(function (b) { return b.k !== 'p' && b.k !== 'choices'; })) { return pages; }
+    cand = prev.blocks.concat(last.blocks);
+    for (lv = 0; lv <= 3; lv++) {
+      if (fitsBlocks(cand, lv)) { pages.splice(n - 2, 2, mkPage(cand, lv)); report.merged.push(id + ' @' + window.innerWidth + 'x' + window.innerHeight + ': text+choices'); return pages; }
+    }
+    return pages;
+  }
   function paginate(model, id) {
     var pages = [];
     beat.style.visibility = 'hidden';
@@ -879,7 +960,9 @@
       for (var b = 0; b < model.beats.length; b++) {
         var blocks = toBlocks(model.beats[b], ctxNow);
         if (!blocks.length) { continue; }
-        var best = paginateBeat(blocks, id);
+        var tt = report.tooTall.length, best = paginateBeat(blocks, id);
+        // a picture that makes the screen not fit at all (small screens, big zoom) is left out, as before
+        if (hasOptionalPic(blocks) && report.tooTall.length > tt) { report.tooTall.length = tt; best = paginateBeat(dropPictures(blocks), id); }
         // a decorative picture may never make the way to a choice or to the contact details longer
         if (hasOptionalPic(blocks) && best.length > 1) {
           var alt = paginateBeat(dropPictures(blocks), id);
@@ -888,6 +971,8 @@
         pages = pages.concat(best);
         if (hasChoices(blocks)) { break; }
       }
+      pages = mergeShort(pages, id);
+      if (pages.length > 1) { pages = mergeIntoChoices(pages, id); }
     } finally { beat.style.visibility = ''; }
     return pages;
   }
@@ -902,8 +987,9 @@
     try {
       var bg = rgbOf(rvar('--bg')), fg = rgbOf(rvar('--fg')), m = document.getElementById('figm');
       if (!bg || !fg || !m) { return; }
-      var v = [], k;
-      for (k = 0; k < 3; k++) { v.push('0 ' + (fg[k] - bg[k]).toFixed(4) + ' 0 0 ' + bg[k].toFixed(4)); }
+      // output = bg + (fg - bg) * G, plus red stays red: the red of the picture (R - G) is added back as pure red
+      var v = [], k, red = [1, 0, 0], kc;
+      for (k = 0; k < 3; k++) { kc = red[k] - bg[k]; v.push(kc.toFixed(4) + ' ' + ((fg[k] - bg[k]) - kc).toFixed(4) + ' 0 0 ' + bg[k].toFixed(4)); }
       v.push('0 0 0 1 0');
       m.setAttribute('values', v.join('  '));
     } catch (e) { /* the figure keeps its own colours */ }
@@ -977,7 +1063,8 @@
       typing = null;
       done();
     }
-    var CPS = nvar('--cps', 105);
+    // fast enough that a whole beat is typed in about 1.2 s at most: the visitor is rarely interrupted, and a tap during typing only completes it
+    var CPS = Math.max(nvar('--cps', 105), total / 1.2);
     function frame(ts) {
       if (ended) { return; }
       if (t0 === null) { t0 = ts; }
@@ -994,7 +1081,7 @@
 
   /* ---------- the scene being shown ---------- */
   var cur = null;       // {id, kind, model, pages, idx, dest, fresh, person}
-  var gen = 0;
+  var gen = 0, laidW = 0, laidH = 0;
   var shownOnce = false;
   var pendingFresh = {};
   var pendingDest = null;
@@ -1126,6 +1213,7 @@
     applyPalette();
     if (kind === 'scene' && !hist && id === 'ikkuna' && mem.last !== 'ikkuna') { mem.win = (mem.win || 0) + 1; mem.stage = Math.min(4, mem.win); save(); }
     ctxNow = ctxFor(id);
+    picOrient = {};   // which picture (landscape / portrait) suits this screen is decided once per screen, before the pictures are loaded
     var model = buildModel(kind, sec);
     var imgs = imagesOf(model, ctxNow);
     var go = function () {
@@ -1143,6 +1231,15 @@
     model.beats.forEach(function (items) { items.forEach(function (it) { if (it.type === 'roll' && mem.applied['dice:' + id + ':' + it.key]) { cur.skipDice[it.key] = true; } }); });
     pendingFresh = {};
     cur.pages = paginate(model, id);
+    cur.flipped = !!o.noflip;
+    laidW = window.innerWidth; laidH = window.innerHeight;
+    if (!o.noflip && dryFlip()) {
+      var o2 = {}, ok2; for (ok2 in o) { if (o.hasOwnProperty(ok2)) { o2[ok2] = o[ok2]; } }
+      o2.noflip = true;
+      var myg = gen;
+      loadAll(imagesOf(model, ctxNow), function () { if (myg === gen) { safe(function () { showModel(kind, id, model, sec, dest, o2); }); } });
+      return;
+    }
     if (!cur.pages.length) { cur.pages = [mkPage([{ k: 'p', nodes: [{ t: 'text', s: T('tyhja') }] }])]; }
     navId[stateN()] = id;
     if (kind === 'scene' && !o.keep && !o.hist) { mem.seen[id] = (mem.seen[id] || 0) + 1; mem.last = id; save(); }
@@ -1164,6 +1261,7 @@
     var page = cur.pages[i];
     renderBlocks(page.blocks, { tight: page.tight, scroll: page.scroll });
     sizePics();
+    if (maybeFlip()) { return; }
     var isChoices = hasChoices(page.blocks);
     if (isChoices && cur.kind === 'scene') { mem.rc[cur.id] = 1; }
     var isAsk = hasAsk(page.blocks);
@@ -1176,6 +1274,7 @@
       if (isAsk && !(isVahvista && page.released)) { more.hidden = true; }
       if (last && cur.kind !== 'detour' && !isChoices) { more.hidden = true; }
     }
+    app.classList.toggle('canadv', !isChoices && !isAsk);
     prevBtn.style.visibility = i > 0 ? 'visible' : 'hidden';
     prevBtn.disabled = i === 0;
     if (o.wipe && !reduced) { retrigger(stage, 'wipe'); }
@@ -1205,25 +1304,44 @@
   function sizePics() {
     var pics = beat.querySelectorAll('.pic'), i, k;
     for (i = 0; i < pics.length; i++) {
-      var pic = pics[i], wrap = pic.querySelector('.picwrap');
-      if (!wrap) { continue; }
-      var bar = pic.querySelector('.cappanel');
-      var availH = pic.clientHeight - (bar ? bar.offsetHeight + 2 : 0), availW = pic.clientWidth;
-      if (pic.classList.contains('person')) { availH = Math.min(availH, 330); availW = Math.min(availW, 300); }
+      var pic = pics[i], wrap = pic.querySelector('.picwrap'), inner = wrap && wrap.querySelector('.picin');
+      if (!wrap || !inner) { continue; }
+      var what0 = pic.classList.contains('pic-avaus') ? 'avaus' : '', port0 = wrap.classList.contains('port');
+      var bar = pic.querySelector('.capbar'), strip = pic.querySelector('.skystrip'), stripH = 0, moonCv = wrap.querySelector('canvas.moon') || (strip && strip.querySelector('canvas.moon'));
+      if (strip) { strip.style.height = '0px'; if (moonCv && moonCv.parentNode !== wrap) { wrap.appendChild(moonCv); } }
+      var availH0 = pic.clientHeight - (bar ? bar.offsetHeight : 0), availW = pic.clientWidth, availH = availH0, pass = 0;
+      if (pic.classList.contains('person')) { availH = Math.min(availH, 520); availW = Math.min(availW, 520); }
+     again:
+      for (;;) {
       var iw = parseFloat(wrap.getAttribute('data-w')) || 1, ih = parseFloat(wrap.getAttribute('data-h')) || 1;
-      var sc = Math.min(availH / ih, availW / iw);
+      var F = (wrap.getAttribute('data-f') || '0,0,100,100').split(',').map(parseFloat);
+      if (F.length < 4 || isNaN(F[0] + F[1] + F[2] + F[3])) { F = FULL; }
+      var sc = coverScale(iw, ih, F, Math.max(1, availW), Math.max(1, availH));
       if (!(sc > 0)) { sc = 0.05; }
-      var ww = Math.floor(iw * sc), hh = Math.floor(ih * sc);
+      // the window: as wide as the column (never wider than the image), as tall as the room allows; the focus box is centred in it
+      var ww = Math.max(1, Math.min(Math.floor(availW), Math.floor(iw * sc))), hh = Math.max(1, Math.min(Math.floor(availH), Math.floor(ih * sc)));
+      var vw = ww / sc, vh = hh / sc, fcx = (F[0] + F[2] / 2) / 100 * iw, fcy = (F[1] + F[3] / 2) / 100 * ih;
+      var offX = Math.max(0, Math.min(iw - vw, fcx - vw / 2)) * sc, offY = Math.max(0, Math.min(ih - vh, fcy - vh / 2)) * sc;
+      var IW = Math.round(iw * sc), IH = Math.round(ih * sc);
+      offX = Math.round(offX); offY = Math.round(offY);
       wrap.style.width = ww + 'px'; wrap.style.height = hh + 'px';
-      var stp = wrap.querySelector('.stamp'); if (stp) { stp.style.fontSize = Math.max(7, Math.min(13, Math.round(ww / 28))) + 'px'; }
-      if (portraitView()) { wrap.classList.add('port'); } else { wrap.classList.remove('port'); }
-      // every hotspot is at least 44 x 44 CSS pixels (the invisible hit area grows around the drawn one); then overlaps are removed:
-      // a character never takes taps from another hotspot, and neighbouring hotspots split their shared zone down the middle
-      var sp = wrap.querySelectorAll('.spot'), items = [];
+      if (strip) { strip.style.width = ww + 'px'; }
+      inner.style.width = IW + 'px'; inner.style.height = IH + 'px'; inner.style.left = (-offX) + 'px'; inner.style.top = (-offY) + 'px';
+      wrap.setAttribute('data-sc', sc.toFixed(4)); wrap.setAttribute('data-aw', String(Math.round(availW))); wrap.setAttribute('data-ah', String(Math.round(availH)));
+      var stp = wrap.querySelector('.stamp'); if (stp) { stp.style.fontSize = Math.max(8, Math.min(13, Math.round(ww / 28))) + 'px'; }
+      // every hotspot is at least 44 x 44 CSS pixels (the invisible hit area grows around the drawn one) and stays inside the window; then overlaps are removed:
+      // a character never takes taps from another hotspot, and neighbouring hotspots split their shared zone down the middle.
+      // Everything below is computed in window coordinates and moved into image coordinates at the end.
+      var sp = inner.querySelectorAll('.spot'), items = [];
       for (k = 0; k < sp.length; k++) {
         var s = curSpots[parseInt(sp[k].getAttribute('data-si'), 10)];
         if (!s) { continue; }
-        var px = s.r[2] * ww / 100, py = s.r[3] * hh / 100, cx = (s.r[0] + s.r[2] / 2) * ww / 100, cy = (s.r[1] + s.r[3] / 2) * hh / 100;
+        var x0 = s.r[0] * IW / 100 - offX, y0 = s.r[1] * IH / 100 - offY, x1 = x0 + s.r[2] * IW / 100, y1 = y0 + s.r[3] * IH / 100;
+        var cx0 = Math.max(0, x0), cy0 = Math.max(0, y0), cx1 = Math.min(ww, x1), cy1 = Math.min(hh, y1);
+        // cropped away (or mostly): only a look-only curiosity in practice; a hotspot that leads somewhere is kept while at least a third of it shows
+        if (cx1 - cx0 < 6 || cy1 - cy0 < 6 || (cx1 - cx0) * (cy1 - cy0) < (s.go ? 0.33 : 0.6) * (x1 - x0) * (y1 - y0)) { sp[k].style.display = 'none'; sp[k].tabIndex = -1; continue; }
+        sp[k].style.display = ''; sp[k].tabIndex = 0;
+        var px = cx1 - cx0, py = cy1 - cy0, cx = (cx0 + cx1) / 2, cy = (cy0 + cy1) / 2;
         var w2 = Math.min(Math.max(px, 44), ww), h2 = Math.min(Math.max(py, 44), hh);
         var l2 = Math.max(0, Math.min(ww - w2, cx - w2 / 2)), t2 = Math.max(0, Math.min(hh - h2, cy - h2 / 2));
         items.push({ el: sp[k], cast: !!s.cast, soft: !!s.soft, l: l2, t: t2, r: l2 + w2, b: t2 + h2, cx: cx, cy: cy });
@@ -1240,9 +1358,90 @@
       resolveHits(items);
       for (k = 0; k < items.length; k++) {
         var it = items[k];
-        it.el.style.left = it.l + 'px'; it.el.style.top = it.t + 'px'; it.el.style.width = Math.max(1, it.r - it.l) + 'px'; it.el.style.height = Math.max(1, it.b - it.t) + 'px';
+        it.el.style.left = (it.l + offX) + 'px'; it.el.style.top = (it.t + offY) + 'px'; it.el.style.width = Math.max(1, it.r - it.l) + 'px'; it.el.style.height = Math.max(1, it.b - it.t) + 'px';
+      }
+      // the moon is a sky object: only inside the visible empty sky (TAIVAS), else in a strip above the picture, else left out (the stamp names the phase)
+      if (moonCv && what0 === 'avaus') {
+        var place = placeMoon(wrap, moonCv, strip, ww, hh, IW, IH, offX, offY, port0, stripH);
+        if (place === 'strip-needed' && pass === 0 && strip) {
+          var need = moonSize(ww) + 6, minH = parseFloat(getComputedStyle(pic).minHeight) || 0;
+          if (availH0 - need >= Math.max(150, minH - 26)) { stripH = need; strip.style.height = need + 'px'; availH = availH0 - need; pass = 1; continue again; }
+          placeMoon(wrap, moonCv, strip, ww, hh, IW, IH, offX, offY, port0, -1);
+        }
+      }
+      break;
       }
     }
+  }
+  function moonSize(ww) { return Math.max(32, Math.min(56, Math.round(ww * 0.085))); }
+  function frac(x) { return x - Math.floor(x); }
+  // Place the moon in the visible sky of the window; returns 'sky', 'strip' (placed in the strip), 'strip-needed' (no visible sky: the caller reserves a strip) or 'none'.
+  function placeMoon(wrap, cv, strip, ww, hh, IW, IH, offX, offY, port, stripH) {
+    var D = moonSize(ww), c = ctxNow, st = story.pictures.avaus, sky = st && st.sky && (port ? st.sky.p : st.sky.l), stamp = wrap.querySelector('.stamp');
+    var u = 0.08 + 0.84 * frac((c.now.h * 60 + c.now.mi) / 1440 + c.moonAge / 29.53), v = frac(c.moonAge * 0.37 + c.now.h / 24);
+    function put(parent, x, y) {
+      if (cv.parentNode !== parent) { parent.appendChild(cv); }
+      cv.style.position = 'absolute'; cv.style.left = Math.round(x) + 'px'; cv.style.top = Math.round(y) + 'px'; cv.style.width = D + 'px'; cv.style.height = D + 'px'; cv.style.display = 'block';
+      cv.setAttribute('data-where', parent === wrap ? 'sky' : 'strip');
+    }
+    if (stripH > 0 && strip) { put(strip, 4 + u * Math.max(0, ww - D - 8), 3); return 'strip'; }
+    if (stripH < 0 || !sky) { cv.style.display = 'none'; cv.setAttribute('data-where', 'none'); return 'none'; }
+    var x0 = Math.max(0, sky[0] / 100 * IW - offX), x1 = Math.min(ww, (sky[0] + sky[2]) / 100 * IW - offX), y0 = Math.max(0, sky[1] / 100 * IH - offY), y1 = Math.min(hh, (sky[1] + sky[3]) / 100 * IH - offY);
+    var sw = x1 - x0, sh = y1 - y0;
+    if (sw >= D + 8 && sh >= 1.5 * D + 4) {
+      var x = x0 + 4 + u * (sw - D - 8), y = y0 + 4 + v * (sh - 1.5 * D - 4);
+      if (stamp) {   // the date stamp sits in the top left corner: keep clear of it
+        var sr = { l: stamp.offsetLeft - 4, t: stamp.offsetTop - 4, r: stamp.offsetLeft + stamp.offsetWidth + 4, b: stamp.offsetTop + stamp.offsetHeight + 4 };
+        if (x < sr.r && x + D > sr.l && y < sr.b && y + D > sr.t) {
+          if (sr.r + D + 4 <= x1) { x = Math.max(x, sr.r); } else if (sr.b + 4 + D + D / 2 <= y1) { y = Math.max(y, sr.b + 4); } else { x = -1; }
+        }
+      }
+      if (x >= 0 && x + D <= x1 - 2 + 8) { put(wrap, x, y); return 'sky'; }
+    }
+    cv.style.display = 'none'; cv.setAttribute('data-where', 'none');
+    return 'strip-needed';
+  }
+  // The landscape / portrait choice was made from an estimate of the picture area. Now that the page is laid out, check it against the real area
+  // and, once per screen, switch to the other picture when that shows its focus box clearly larger. Returns true when the screen is being rebuilt.
+  function flipWanted() {
+    var pic = beat.querySelector('.pic-avaus, .pic-kaytava'), wrap = pic && pic.querySelector('.picwrap');
+    if (!wrap) { return null; }
+    var what = pic.classList.contains('pic-avaus') ? 'avaus' : 'kaytava', port = isPortPic(what);
+    var aw = parseFloat(wrap.getAttribute('data-aw')), ah = parseFloat(wrap.getAttribute('data-ah'));
+    if (!(aw > 0 && ah > 0)) { return false; }
+    var dl = imgDim[IMG + what + '.jpg'] || { w: NOMINAL[what][0], h: NOMINAL[what][1] }, dp = imgDim[IMG + what + '-pysty.jpg'] || { w: NOMINAL[what + '-pysty'][0], h: NOMINAL[what + '-pysty'][1] };
+    var sl = coverScale(dl.w, dl.h, focusOf(what, 'l'), aw, ah), sp = coverScale(dp.w, dp.h, focusOf(what, 'p'), aw, ah);
+    var better = port ? sl > sp * 1.12 : sp > sl * 1.12;
+    if (!better || imgOk[IMG + what + (port ? '.jpg' : '-pysty.jpg')] === false) { return null; }
+    return { what: what, port: port };
+  }
+  // before a screen is shown: lay out its first picture page invisibly and see whether the other picture would suit the real picture area better
+  function dryFlip() {
+    var i, pg = null, j, r;
+    for (i = 0; i < cur.pages.length && !pg; i++) { for (j = 0; j < cur.pages[i].blocks.length; j++) { var b = cur.pages[i].blocks[j]; if (b.k === 'show' && (b.what === 'avaus' || b.what === 'kaytava')) { pg = cur.pages[i]; break; } } }
+    if (!pg) { return false; }
+    beat.style.visibility = 'hidden';
+    try { renderBlocks(pg.blocks, { tight: pg.tight, scroll: pg.scroll }); sizePics(); r = flipWanted(); } finally { beat.style.visibility = ''; }
+    if (!r) { return false; }
+    picOrient[r.what] = !r.port;
+    return true;
+  }
+  function maybeFlip() {
+    if (!cur || cur.flipped) { return false; }
+    var r = flipWanted(); if (!r) { return false; }
+    var what = r.what, port = r.port;
+    cur.flipped = true; picOrient[what] = !port;
+    var keepKey = pageKey(cur.pages[cur.idx]);
+    loadAll(imagesOf(cur.model, ctxNow), function () {
+      safe(function () {
+        curModel = cur.model;
+        cur.pages = paginate(cur.model, cur.id);
+        var i, idx = 0;
+        for (i = 0; i < cur.pages.length; i++) { if (pageKey(cur.pages[i]) === keepKey) { idx = i; break; } }
+        showPage(idx, {});
+      });
+    });
+    return true;
   }
   // one hotspot lying (almost) entirely inside another (a small thing on a door): the small one is drawn later and wins inside it
   function nested(a, b) {
@@ -1274,8 +1473,7 @@
   function drawMoons() {
     var cs = beat.querySelectorAll('canvas.moon'), i;
     for (i = 0; i < cs.length; i++) {
-      var full = cs[i].getAttribute('data-full') === '1';
-      fx('moon', cs[i], parseFloat(cs[i].getAttribute('data-age')), G.SYN, rvar(full ? '--eye' : '--head') || '#ffff00', rgba(rvar('--fg') || '#ffffff', 0.45));
+      fx('moon', cs[i], parseFloat(cs[i].getAttribute('data-age')), G.SYN, rvar('--head') || '#ffff00', rgba(rvar('--fg') || '#ffffff', 0.45));
     }
   }
   var revealTimer = null;
@@ -1295,38 +1493,54 @@
     var l = sp.looks && sp.looks.length ? sp.looks : [sp.look];
     return l[(n - 1) % l.length] || sp.look || T('katso ei mitaan');
   }
+  function makeSlot() {
+    var slot = el('div', 'slot'), panel = el('div', 'cappanel');
+    panel.appendChild(el('p', 'caplook', ''));
+    var act = el('button', 'capact'); act.type = 'button'; act.hidden = true; panel.appendChild(act);
+    slot.appendChild(panel);
+    return slot;
+  }
   function fillPanel(panel, sp, text) {
-    var nm = panel.querySelector('.capname'), lk = panel.querySelector('.caplook'), ab = panel.querySelector('.capact');
-    if (!sp) { nm.textContent = T('kuva ohje'); lk.textContent = ''; ab.hidden = true; return; }
-    nm.textContent = sp.name;
+    var lk = panel.querySelector('.caplook'), ab = panel.querySelector('.capact');
+    if (!sp) { lk.textContent = ''; ab.hidden = true; return; }
     lk.textContent = text || sp.look || T('katso ei mitaan');
     if (sp.go) { ab.hidden = false; ab.textContent = '> ' + sp.label; } else { ab.hidden = true; }
   }
-  function reservePanel(pic) {
-    var panel = pic.querySelector('.cappanel');
-    if (!panel) { return; }
-    var i, max = 0;
-    panel.style.height = 'auto';
-    var mine = pic.querySelectorAll('.spot');
-    fillPanel(panel, null); max = panel.offsetHeight;
+  // the text slot under the picture shows either the beat's text or (while a hotspot is selected) the look line and the action button;
+  // it always has the height of the taller of the two, so nothing shifts or is covered
+  function reserveSlot(slot) {
+    var panel = slot.querySelector('.cappanel'), pic = beat.querySelector('.pic[data-spots]');
+    if (!panel || !pic) { return; }
+    var mine = pic.querySelectorAll('.spot'), i, j, max = 0;
+    slot.style.minHeight = '0px';
+    panel.style.display = 'block'; panel.style.visibility = 'hidden';
     for (i = 0; i < mine.length; i++) {
-      var s = curSpots[parseInt(mine[i].getAttribute('data-si'), 10)], j, alts = (s.looks || []).concat(s.third ? [s.third] : []);
-      fillPanel(panel, s); if (panel.offsetHeight > max) { max = panel.offsetHeight; }
-      for (j = 0; j < alts.length; j++) { fillPanel(panel, s, alts[j]); if (panel.offsetHeight > max) { max = panel.offsetHeight; } }
+      var sp = curSpots[parseInt(mine[i].getAttribute('data-si'), 10)];
+      if (!sp) { continue; }
+      var alts = [sp.look].concat(sp.looks || []).concat(sp.third ? [sp.third] : []);
+      for (j = 0; j < alts.length; j++) { fillPanel(panel, sp, alts[j]); if (panel.offsetHeight > max) { max = panel.offsetHeight; } }
     }
     fillPanel(panel, null);
-    panel.style.height = max + 'px';
-    pic.style.setProperty('--panelh', max + 'px');
+    panel.style.display = ''; panel.style.visibility = '';
+    slot.style.minHeight = max + 'px';
+  }
+  function setBar(name) {
+    var bar = beat.querySelector('.capbar .capname');
+    if (!bar) { return; }
+    bar.textContent = name || idleHint();
+    bar.parentNode.className = 'capbar' + (name ? ' named' : '');
   }
   function setSelection(idx) {
     if (!picState) { return; }
-    var pic = beat.querySelector('.pic[data-spots]'), i;
-    if (!pic) { return; }
+    var pic = beat.querySelector('.pic[data-spots]'), slot = beat.querySelector('.slot'), i;
+    if (!pic || !slot) { return; }
     picState.sel = idx;
     if (idx >= 0) { logo('react'); }
     var sp = idx >= 0 ? curSpots[idx] : null, txt = '';
-    if (sp) { var cnt = mem.spotn[sp.id] = (mem.spotn[sp.id] || 0) + 1; txt = lookFor(sp, cnt); save(); }
-    fillPanel(pic.querySelector('.cappanel'), sp, txt);
+    if (sp) { var cnt = mem.spotn[sp.id] = (mem.spotn[sp.id] || 0) + 1; txt = lookFor(sp, cnt); mem.flags.hinted = 1; save(); }
+    fillPanel(slot.querySelector('.cappanel'), sp, txt);
+    slot.classList.toggle('sel', !!sp);
+    setBar(sp ? sp.name : null);
     var all = pic.querySelectorAll('.spot');
     for (i = 0; i < all.length; i++) { all[i].classList.toggle('sel', parseInt(all[i].getAttribute('data-si'), 10) === idx); }
     // the matching text choice lights up
@@ -1353,11 +1567,30 @@
     }
     else if (tg.kind === 'next') { var a = beat.querySelector('.choices a'); if (a) { a.click(); } else { advance(); } }
   }
+  // First tap on a hotspot never navigates: it selects (look line + big action button). Tapping the SAME hotspot again does the action
+  // (the thumb stays where it is). A hotspot that has no look line to read acts at once. A look-only hotspot toggles off when tapped again.
   function spotAct(btn) {
-    var idx = parseInt(btn.getAttribute('data-si'), 10);
-    if (!curSpots[idx]) { return; }
+    var idx = parseInt(btn.getAttribute('data-si'), 10), sp = curSpots[idx];
+    if (!sp) { return; }
     closeAside();
-    setSelection(picState && picState.sel === idx ? -1 : idx);
+    if (picState && picState.sel === idx) {
+      if (sp.go) { btn.classList.add('tapped'); followTarget(sp.go); } else { setSelection(-1); }
+      return;
+    }
+    if (sp.go && !sp.look) { btn.classList.add('tapped'); followTarget(sp.go); return; }
+    setSelection(idx);
+  }
+  // a tap on the picture where nothing is: show again what can be tapped (never advances, never silent)
+  function showSpotsAgain() {
+    var pic = beat.querySelector('.pic[data-spots]');
+    if (!pic) { return; }
+    pic.classList.remove('reveal'); void pic.offsetWidth; pic.classList.add('reveal');
+    clearTimeout(revealTimer);
+    revealTimer = setTimeout(function () { pic.classList.remove('reveal'); }, 1400);
+  }
+  function nudge() {
+    beat.classList.remove('nudge'); void beat.offsetWidth; beat.classList.add('nudge');
+    setTimeout(function () { beat.classList.remove('nudge'); }, 700);
   }
   /* ---------- history: one rule. Back goes to the previous SCENE (its choices screen if the visitor had reached it).
      Transient screens (detour beats, conversations, exit beats, return lines, ending screens) are replaced, never left behind in the history. ---------- */
@@ -1482,7 +1715,7 @@
     };
     loadAll([IMG + pe.img + '.jpg'], go);
   }
-  var FK = { 'jarki': 'jarki', 'avaus': 'openTime', 'sulkeminen': 'closeTime', 'viikonpaiva': 'viikonpaiva', 'kuu': 'kuu', 'kellonaika': 'kello', 'salasana': 'salasana', 'tilanne': 'status', 'puhelin': 'phone', 'sahkoposti': 'email', 'katu': 'street' };
+  var FK = { 'jarki': 'jarki', 'avaus': 'openTime', 'sulkeminen': 'closeTime', 'viikonpaiva': 'viikonpaiva', 'kuu': 'kuu', 'aika': 'aika', 'kellonaika': 'kello', 'salasana': 'salasana', 'tilanne': 'status', 'puhelin': 'phone', 'sahkoposti': 'email', 'katu': 'street' };
   function parseLine(s) {
     var out = [], re = /\{([^{}]+)\}/g, m, p = 0;
     while ((m = re.exec(s))) {
@@ -1611,12 +1844,13 @@
       var sp = t.closest('.spot');
       if (sp) { e.preventDefault(); spotAct(sp); return; }
       var ca = t.closest('.capact');
-      if (ca) { e.preventDefault(); if (picState && picState.sel >= 0) { followTarget(curSpots[picState.sel].go); } return; }
+      if (ca) { e.preventDefault(); if (picState && picState.sel >= 0) { ca.classList.add('tapped'); followTarget(curSpots[picState.sel].go); } return; }
       var acl = t.closest('.asideclose');
       if (acl) { e.preventDefault(); closeAside(); return; }
-      if (t.closest('.picwrap') && picState && picState.sel >= 0) { setSelection(-1); return; }
+      if (t.closest('.pic') && picState) { if (picState.sel >= 0) { setSelection(-1); } else if (!t.closest('.capbar')) { showSpotsAgain(); } return; }
       var a = t.closest('a');
       if (a) {
+        if (a.getAttribute('data-go') || a.getAttribute('data-exit') || a.getAttribute('data-topic') || a.getAttribute('data-more') || a.getAttribute('data-end')) { a.classList.add('tapped'); }
         if (e.ctrlKey || e.metaKey || e.shiftKey || e.button === 1) { return; }
         if (a.getAttribute('data-more')) { e.preventDefault(); if (cur && cur.idx < cur.pages.length - 1) { showPage(cur.idx + 1, {}); } return; }
         var tp = a.getAttribute('data-topic');
@@ -1637,7 +1871,7 @@
       }
       if (asideBox || !asidePanel.hidden) { closeAside(); return; }
       if (t.closest('#boot')) { return; }
-      if (t.closest('#app') && !t.closest('.foot') && !t.closest('.pic')) { advance(); }
+      if (t.closest('#app') && !t.closest('.foot') && !t.closest('.pic')) { if (!advance() && cur && hasChoices(cur.pages[cur.idx].blocks)) { nudge(); } }
     });
   });
 
@@ -1648,6 +1882,21 @@
       if (a) { outlineSpot(a.getAttribute('data-k'), on); }
     };
   }
+  // pointer type: hover only matters for a mouse; a touch tap also produces mouseover on some browsers
+  document.addEventListener('pointerdown', function (e) { mouseLike = e.pointerType === 'mouse'; }, true);
+  document.addEventListener('pointermove', function (e) { if (e.pointerType === 'mouse') { mouseLike = true; } }, true);
+  document.addEventListener('touchstart', function () { mouseLike = false; }, { passive: true, capture: true });   // also makes :active work in iOS Safari
+  function hoverBar(e, on) {
+    var sp = e.target && e.target.closest ? e.target.closest('.spot') : null;
+    if (!sp || !picState || (!mouseLike && e.type.indexOf('focus') < 0)) { return; }
+    var s2 = curSpots[parseInt(sp.getAttribute('data-si'), 10)];
+    if (!s2) { return; }
+    if (on) { setBar(s2.name); } else { setBar(picState.sel >= 0 && curSpots[picState.sel] ? curSpots[picState.sel].name : null); }
+  }
+  document.addEventListener('mouseover', function (e) { hoverBar(e, true); });
+  document.addEventListener('mouseout', function (e) { hoverBar(e, false); });
+  document.addEventListener('focusin', function (e) { hoverBar(e, true); });
+  document.addEventListener('focusout', function (e) { hoverBar(e, false); });
   document.addEventListener('mouseover', pairEvent(true));
   document.addEventListener('mouseout', pairEvent(false));
   document.addEventListener('focusin', pairEvent(true));
@@ -1842,18 +2091,25 @@
     resizeTimer = setTimeout(function () {
       safe(function () {
         if (!cur) { return; }
-        var keepKey = pageKey(cur.pages[cur.idx]);
+        if (laidW === window.innerWidth && laidH === window.innerHeight) { return; }   // nothing changed (some browsers send a resize event at start)
+        picOrient = {};
         finishTyping(); finishDice();
-        loadAll(imagesOf(cur.model, ctxNow), function () {
-          safe(function () {
-            curModel = cur.model;
-            cur.pages = paginate(cur.model, cur.id);
-            var i, idx = 0;
-            for (i = 0; i < cur.pages.length; i++) { if (pageKey(cur.pages[i]) === keepKey) { idx = i; break; } }
-            cur.pages.forEach(function (p) { p.typed = true; p.revealed = true; });
-            showPage(idx, { instant: true });
+        var keepKey = pageKey(cur.pages[cur.idx]);
+        (function relayout(tryFlip) {
+          loadAll(imagesOf(cur.model, ctxNow), function () {
+            safe(function () {
+              curModel = cur.model;
+              cur.pages = paginate(cur.model, cur.id);
+              if (tryFlip && dryFlip()) { relayout(false); return; }
+              laidW = window.innerWidth; laidH = window.innerHeight;
+              var i, idx = 0;
+              for (i = 0; i < cur.pages.length; i++) { if (pageKey(cur.pages[i]) === keepKey) { idx = i; break; } }
+              cur.pages.forEach(function (p) { p.typed = true; p.revealed = true; });
+              cur.flipped = true;
+              showPage(idx, { instant: true });
+            });
           });
-        });
+        })(true);
       });
     }, 150);
   }

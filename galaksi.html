@@ -31,8 +31,16 @@
   .picov img { display: block; width: 100%; height: auto; }
   .picov .ov { position: absolute; border: 2px solid #ffff00; box-sizing: border-box; }
   .picov .ov.place { border-color: #ff00ff; }
+  .picov .ov.sky { border-color: #00ffff; border-style: dashed; }
+  .picov .ov.sky span { background: #00ffff; color: #000; }
   .picov .ov span { position: absolute; left: 0; top: 0; background: #000; color: #ff0; font-size: 10px; line-height: 1.1; padding: 1px 2px; }
   #logofx button { border: 1px solid var(--fg); background: transparent; color: var(--link); font: inherit; font-size: 1rem; padding: 10px 14px; cursor: pointer; margin: 0 12px 12px 0; }
+  #logoprev { position: sticky; top: 0; z-index: 10; background: var(--bg); padding: 8px 0 0; }
+  .logopreview { border: 2px solid var(--fg); padding: 10px 12px; margin: 0 0 6px; }
+  .logostatus { margin: 0 0 8px; min-height: 2.6em; color: var(--head); }
+  #logofx button.on { background: var(--link); color: var(--bg); }
+  #logofx button { margin: 0 8px 8px 0; padding: 10px 12px; }
+  #ctlresult { margin: 8px 0 0; color: var(--head); }
   .sw { margin: 0 0 14px; border: 1px solid var(--fg); }
   .sw .sample { background: var(--bg); color: var(--fg); padding: 10px 12px; font-size: 1rem; line-height: 1.4; }
   .sw .sample b { color: var(--head); font-weight: 400; }
@@ -61,20 +69,27 @@
 
   <h2>Aseta asennot</h2>
   <div class="ctl" id="ctl"></div>
+  <p id="ctlresult" class="small" role="status" aria-live="polite"></p>
   <div class="row"><a id="play" href="index.html">Pelaa näillä asennoilla</a><button type="button" id="reset">Nollaa</button></div>
 
   <h2>Virheet ja huomautukset</h2>
   <div id="errors"><p>Ladataan_</p></div>
 
   <h2>Logon tehosteet</h2>
-  <div class="row" id="logofx"><button type="button" data-fx="blink">O räpäyttää</button><button type="button" data-fx="tube">Väsynyt kirjain</button><button type="button" data-fx="tick">X kääntyy</button><button type="button" data-fx="swap">Kirjaimet vaihtuvat</button><button type="button" data-fx="flash">Salama</button><button type="button" data-fx="react">Silmäys</button></div>
-  <p class="small">Logo kokonaisuudessaan on aina täysi, ehjä sana levossa. Tehosteet ovat harvinaisia ja pysähtyvät, kun liikettä halutaan vähemmän. X:ää napauttamalla kolme kertaa tapahtuu jotain pientä.</p>
+  <p class="small">Logo kokonaisuudessaan on aina täysi, ehjä sana levossa. Tehosteet ovat harvinaisia ja pysähtyvät, kun liikettä halutaan vähemmän. X:ää napauttamalla kolme kertaa tapahtuu jotain pientä. Tehoste näkyy alla olevassa esikatselussa pidempään kuin pelissä.</p>
+  <div id="logosec">
+   <div id="logoprev">
+    <div id="logopreview" class="logopreview"><div class="logo"><span class="logowrap"><a class="logolink" href="index.html" aria-label="Oulun Paitapaino – alkuun"><img src="assets/img/logo.png" width="1024" height="61" alt="Oulun Paitapaino"></a><button type="button" class="lo-xbtn" aria-label="Laatikko"></button></span></div></div>
+    <p id="logostatus" class="small logostatus" role="status" aria-live="polite">Paina jotain tehostetta. Se näkyy tässä logossa.</p>
+    <div class="row" id="logofx"><button type="button" data-fx="blink" data-d="O räpäyttää: vinoviiva kääntyy, palkki, takaisin">O räpäyttää</button><button type="button" data-fx="tube" data-d="Väsynyt kirjain: yksi kirjain sammuu ja syttyy">Väsynyt kirjain</button><button type="button" data-fx="tick" data-d="X kääntyy: laatikko-X kääntyy yhden askeleen">X kääntyy</button><button type="button" data-fx="swap" data-d="Kirjaimet vaihtuvat: kaksi kirjainta vaihtaa paikkaa hetkeksi">Kirjaimet vaihtuvat</button><button type="button" data-fx="flash" data-d="Salama: koko logo kääntyy väreiltään hetkeksi">Salama</button><button type="button" data-fx="react" data-d="Silmäys: O:n päälle tulee palkki kahdeksi ruuduksi">Silmäys</button></div>
+   </div>
+  </div>
 
   <h2>Loput, salasana ja käynnistys</h2>
   <div id="extras"></div>
 
   <h2>Kuvat ja kohdat</h2>
-  <p class="small">Keltaiset suorakulmiot ovat napautettavat kohdat, magenta on henkilön seisomapaikka. Muokkaa lukuja tiedoston tarina.txt osiossa KUVA.</p>
+  <p class="small">Keltaiset suorakulmiot ovat napautettavat kohdat, magenta on henkilön seisomapaikka ja katkoviivalla piirretty syaani laatikko on tyhjä taivas (TAIVAS), johon kuu piirretään. Muokkaa lukuja tiedoston tarina.txt osiossa KUVA.</p>
   <div id="pics"></div>
 
   <h2>Kiertotiet</h2>

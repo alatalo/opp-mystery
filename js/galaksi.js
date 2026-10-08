@@ -123,6 +123,7 @@
     c.light = OV_VALO[norm(pr.valo || '')] || light;
     var polar = day.min >= -4 ? 'yötön' : (day.max < 3 ? 'kaamos' : 'normaali');
     c.polar = OV_SUN[norm(pr.aurinko || '')] || polar;
+    c.polarOverride = !!OV_SUN[norm(pr.aurinko || '')];
     c.tod = OV_AIKA[norm(pr.aika || '')] || todOf(now.h);
     var wd = now.dow;
     if (pr.paiva) {
@@ -337,30 +338,32 @@
 
   /* ---------- palette (colour scheme) chosen from the conditions; the CSS lives in css/style.css ---------- */
   var PALETTES = [
-    ['oletus', 'Oletus: sininen, valkoinen, keltainen, syaani. Tavallinen pimeä ilta ja yö, ja aina kun ei ole syytä muuhun.'],
-    ['ylivalotus', 'Ylivalotus: valkoinen tausta, tummansininen teksti. Yötön yö tai hyvin korkea aurinko.'],
-    ['kuutamo', 'Kuutamo: musta tausta, valkoinen ja vaalea teksti. Täysikuu ja pimeää.'],
-    ['kaamos', 'Kaamos: tumma laivastonsininen. Talven lyhyet päivät kun on hämärää tai pimeää.'],
-    ['valaistu', 'Valaistu: oletus, mutta keltainen korostuu. Liike on auki ja on pimeää.'],
-    ['outo', 'Outo: magenta ja vihreä. Harvinainen (noin 3 % vierailuista, arvonta pysyy samana koko vierailun).'],
-    ['hamara', 'Hämärä: violetti tausta, oranssi otsikko. Aurinko on horisontin tuntumassa.'],
-    ['paiva', 'Päivä: vaalea syaani tausta, tummansininen teksti. Aurinko on ylhäällä, ihan tavallinen päivä.'],
-    ['halloween', 'Kammo: musta tausta, oranssi teksti, vihreä otsikko. Lokakuun lopun päivät ja perjantai 13.']
+    ['oletus', 'Oletus: sininen, valkoinen, keltainen, syaani. Alkuperäisen sivun värit. Tavallinen ilta ja yö, ja aina kun ei ole syytä muuhun.'],
+    ['paiva', 'Päivä: sama sininen tausta, valkoinen teksti. Otsikot vaaleankeltaiset, linkit syaanit ja lihavoidut. Aurinko on ylhäällä.'],
+    ['hamara', 'Hämärä: hieman syvempi sininen, valkoinen teksti, otsikot lämmin keltaoranssi, linkit syaanit. Aurinko on horisontin tuntumassa.'],
+    ['valaistu', 'Valaistu: sama sininen, mutta keltainen korostuu (linkit ja kortti). Liike on auki ja on pimeää.'],
+    ['kuutamo', 'Kuutamo: musta tausta, valkoinen ja vaalea teksti. Vain täysikuun vuorokausi (yksi vuorokausi kumpaankin suuntaan) ja kun on pimeää.'],
+    ['kaamos', 'Kaamos: tumma laivastonsininen. Vain talvipäivänseisauksen ydinviikot (aurinko ei nouse yli noin 1,9 asteen) ja kun on pimeää.'],
+    ['ylivalotus', 'Ylivalotus: valkoinen tausta, tummansininen teksti. Vain yötön yö juhannuksen tienoilla, kun aurinko ei käytännössä laske lainkaan.'],
+    ['halloween', 'Kammo: musta tausta, oranssi teksti, vihreä otsikko. 28.-31.10. ja perjantai 13.'],
+    ['outo', 'Outo: magenta ja vihreä. Harvinainen (noin 3 % vierailuista, arvonta pysyy samana koko vierailun).']
   ];
   function chanceOn(c) { return c.chance === 'kaikki' ? true : (c.chance === 'ei' ? false : null); }
   function palette(c) {
-    var i, ch = chanceOn(c);
+    var i, ch = chanceOn(c), sd = c.sunDay || {};
     if (c.paletti) { for (i = 0; i < PALETTES.length; i++) { if (PALETTES[i][0] === c.paletti) { return c.paletti; } } }
     if (ch === true || (ch === null && roll(c.seed, 'paletti') < 3)) { return 'outo'; }
     if (c.halloween || c.fri13) { return 'halloween'; }
-    if (c.moon === 'täysi' && c.light === 'pimeä') { return 'kuutamo'; }
-    if (c.polar === 'kaamos' && c.light !== 'valoisa') { return 'kaamos'; }
-    if (c.polar === 'yötön' || (c.light === 'valoisa' && c.sunAlt >= 40)) { return 'ylivalotus'; }
+    // the special palettes are rare on purpose: the everyday ones all keep the brand blue
+    if (c.moon === 'täysi' && c.light === 'pimeä' && (c.moonOverride || Math.abs(c.moonAge - SYN / 2) <= 1.0)) { return 'kuutamo'; }
+    if (c.polar === 'kaamos' && c.light === 'pimeä' && (c.polarOverride || sd.max < KAAMOS_MAX)) { return 'kaamos'; }
+    if (c.polar === 'yötön' && (c.polarOverride || sd.min >= YOTON_MIN)) { return 'ylivalotus'; }
     if (c.light === 'hämärä') { return 'hamara'; }
     if (c.light === 'valoisa') { return 'paiva'; }
     if (c.open) { return 'valaistu'; }
     return 'oletus';
   }
+  var KAAMOS_MAX = 1.9, YOTON_MIN = -1.9;
   // Called from the <head> before the first paint (no flash of the wrong palette)
   function paletteNow() {
     var pr = {}, ov = P.overrides ? P.overrides() : {}, k, seed;

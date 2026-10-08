@@ -9,11 +9,11 @@
 
   var KEYWORDS = ['KUN', 'JOS', 'MUUTEN', 'OTSIKKO', 'SÄÄ', 'NÄYTÄ', 'KYSY', 'KIERTOTIE', 'VÄLILLÄ', 'TOISTUU', 'JATKUU', 'PERILLE',
     'PUHE', 'HEITTO', 'JÄRKI', 'LOPPU', 'OTA', 'HAHMO', 'KUVA', 'HENKILÖ', 'KOHTA', 'PAIKKA', 'AIHE', 'EHTO', 'NIMI', 'KATSO', 'MENE', 'VERBI',
-    'PYSTY', 'RAJA', 'TERVEHDYS', 'POISTUU', 'TIEDOSTO', 'KOLMAS', 'PIILOSSA', 'TOIMI', 'TAUSTA', 'PIHA'];
+    'PYSTY', 'RAJA', 'RAJAUS', 'TAIVAS', 'TERVEHDYS', 'POISTUU', 'TIEDOSTO', 'KOLMAS', 'PIILOSSA', 'TOIMI', 'TAUSTA', 'PIHA'];
   var SHOW = { hahmo: 1, kortti: 1, kyltti: 1, kartta: 1, kissa: 1, avaus: 1, kaytava: 1, leima: 1, omistaja: 1, ovi: 1 };
   var ASK = { nimi: 1, klaani: 1, yhteys: 1, viesti: 1, vahvista: 1 };
   var FACTS = { puhelin: 'phone', sahkoposti: 'email', katu: 'street', postinumero: 'postal', avaus: 'openTime', sulkeminen: 'closeTime',
-    tilanne: 'status', nimi: 'name', kuu: 'kuu', kellonaika: 'kello', viikonpaiva: 'viikonpaiva', aurinko: 'aurinko', valo: 'valo',
+    tilanne: 'status', nimi: 'name', kuu: 'kuu', aika: 'aika', kellonaika: 'kello', viikonpaiva: 'viikonpaiva', aurinko: 'aurinko', valo: 'valo',
     jarki: 'jarki', salasana: 'salasana', instagram: 'instagram', loput: 'loput' };
   var ACTIONS = { puhelin: 'tel', sahko: 'mail', sahkoposti: 'mail', reitti: 'route' };
 
@@ -256,7 +256,7 @@
         }
         if ((m = /^KUVA\s+(\S+)\s*$/i.exec(line))) {
           startSection('pic', sceneId(m[1]), n);
-          sec.pic = story.pictures[sec.id] = story.pictures[sec.id] || { id: sec.id, spots: [], places: {} };
+          sec.pic = story.pictures[sec.id] = story.pictures[sec.id] || { id: sec.id, spots: [], places: {}, focus: {}, sky: {} };
           continue;
         }
         if ((m = /^HENKIL[ÖO]\s+(\S+)\s*$/i.exec(line))) {
@@ -293,6 +293,18 @@
             pl[m[2] ? 'p' : 'l'] = pn; continue;
           }
           if ((m = /^TIEDOSTO\s*:\s*(\S+)$/i.exec(line))) { pic.file = m[1]; continue; }
+          // TAIVAS: x y w h = the empty sky of the picture (percentages): the moon is only ever drawn inside it. TAIVAS PYSTY for the portrait picture.
+          if ((m = /^TAIVAS(\s+PYSTY)?\s*:\s*(.+)$/i.exec(line))) {
+            var sk = numbers(m[2], 4);
+            if (sk) { pic.sky[m[1] ? 'p' : 'l'] = sk; } else { err(n, 'TAIVAS tarvitsee neljä lukua: x y leveys korkeus (prosentteja)'); }
+            continue;
+          }
+          // RAJAUS: x y w h  = the part of the picture that must stay visible on small screens (percentages). PYSTY / 1-4 for the other pictures.
+          if ((m = /^RAJAUS(?:\s+(PYSTY|[1-4]))?\s*:\s*(.+)$/i.exec(line))) {
+            var fb = numbers(m[2], 4);
+            if (fb) { pic.focus[!m[1] ? 'l' : (/^PYSTY$/i.test(m[1]) ? 'p' : 's' + m[1])] = fb; } else { err(n, 'RAJAUS tarvitsee neljä lukua: x y leveys korkeus (prosentteja)'); }
+            continue;
+          }
           if (!cur) { err(n, 'Rivi kuuluu KOHTA-lohkoon (aloita rivillä KOHTA nimi: x y w h): ' + line); continue; }
           if ((m = /^NIMI\s*:\s*(.+)$/i.exec(line))) { cur.name = m[1]; continue; }
           if ((m = /^KATSO\s*:\s*(.+)$/i.exec(line))) { cur.looks.push(m[1]); if (!cur.look) { cur.look = m[1]; } continue; }
@@ -314,6 +326,7 @@
           var ps = sec.person;
           if ((m = /^NIMI\s*:\s*(.+)$/i.exec(line))) { ps.name = m[1]; cur = null; continue; }
           if ((m = /^KUVA\s*:\s*(\S+)$/i.exec(line))) { ps.img = m[1]; cur = null; continue; }
+          if ((m = /^RAJAUS\s*:\s*(.+)$/i.exec(line))) { var pf = numbers(m[1], 4); if (pf) { ps.focus = pf; } else { err(n, 'RAJAUS tarvitsee neljä lukua'); } cur = null; continue; }
           if ((m = /^KATSO\s*:\s*(.+)$/i.exec(line))) { ps.look = m[1]; ps.looks = (ps.looks || []).concat([m[1]]); cur = null; continue; }
           if ((m = /^TERVEHDYS\s*:\s*(.+)$/i.exec(line))) { ps.greeting = m[1]; cur = null; continue; }
           if ((m = /^POISTUU\s*:\s*(\S+)$/i.exec(line))) { ps.leave = sceneId(m[1]); cur = null; continue; }

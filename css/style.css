@@ -20,6 +20,8 @@
    PALETTES. The engine (js/galaksi.js: palette()) picks ONE of these from the conditions and sets
    <html data-paletti="name"> before the first paint. The first block (:root) is the DEFAULT, the brand:
    blue background, white text, yellow headings, cyan links, red-on-white card. Most visitors see it most of the time.
+   The hours card (--card-*, --shadow) and the eyes (--eye) are PINNED to red-on-white / red in every palette: the story says the letters are red.
+   Every everyday palette (oletus, paiva, hamara, valaistu) keeps the blue background; only the accents shift.
    Same style everywhere: flat, fully saturated colours, hard edges. Only the values below change.
    Roles: --bg background, --fg text, --head headings and jokes, --link links, --card-bg/--card-fg the hours card,
    --shadow card shadow, --eye eyes of the figure, --sun lightning and sun in the weather layer,
@@ -38,14 +40,14 @@
 /* overexposed: midsummer no-night, or a very high sun. Light, steady, nothing stormy */
 [data-paletti="ylivalotus"] {
   --bg: #ffffff; --fg: #0000aa; --head: #aa0000; --link: #aa00aa;
-  --card-bg: #0000aa; --card-fg: #ffffff; --shadow: #000000; --eye: #aa0000; --sun: #aa5500;
+  --card-bg: #ffffff; --card-fg: #ff0000; --shadow: #000000; --eye: #ff0000; --sun: #aa5500;
   --logo-filter: none; --fig-filter: url(#figf);
   --cps: 140; --blink: .5s; --lamp: 16s; --eye-dur: 3s; --rain: 0; --wind: 0; --bolt: 0;
 }
 /* full moon, dark: black, white and pale. Slow and clear */
 [data-paletti="kuutamo"] {
   --bg: #000000; --fg: #ffffff; --head: #ffff55; --link: #55ffff;
-  --card-bg: #ffffff; --card-fg: #aa0000; --shadow: #555555; --eye: #ff5555; --sun: #ffff55;
+  --card-bg: #ffffff; --card-fg: #ff0000; --shadow: #000000; --eye: #ff0000; --sun: #ffff55;
   --logo-filter: invert(1); --fig-filter: url(#figf);
   --cps: 80; --blink: 1.2s; --lamp: 11s; --eye-dur: 7s; --rain: .6; --wind: 0; --bolt: .3;
 }
@@ -59,35 +61,36 @@
 /* the shop is open right now: the default with the yellow turned up (links, card) */
 [data-paletti="valaistu"] {
   --bg: #0000ff; --fg: #ffffff; --head: #ffff00; --link: #ffff00;
-  --card-bg: #ffff00; --card-fg: #aa0000; --shadow: #000000; --eye: #ff0000; --sun: #ffff00;
+  --card-bg: #ffffff; --card-fg: #ff0000; --shadow: #000000; --eye: #ff0000; --sun: #ffff00;
   --logo-filter: none; --fig-filter: none;
   --cps: 120; --blink: .7s; --lamp: 14s; --eye-dur: 5s; --rain: .8; --wind: 0; --bolt: .5;
 }
-/* dusk: sun near the horizon. Violet, orange heading */
+/* dusk: sun near the horizon. The same blue, one step deeper; the heading turns a warm yellow-orange */
 [data-paletti="hamara"] {
-  --bg: #550088; --fg: #ffffff; --head: #ffaa00; --link: #55ffff;
-  --card-bg: #ffaa00; --card-fg: #550088; --shadow: #000000; --eye: #ff5555; --sun: #ffaa00;
-  --logo-filter: invert(1); --fig-filter: url(#figf);
+  --bg: #0000c8; --fg: #ffffff; --head: #ffaa00; --link: #00ffff;
+  --card-bg: #ffffff; --card-fg: #ff0000; --shadow: #000000; --eye: #ff0000; --sun: #ffaa00;
+  --logo-filter: none; --fig-filter: url(#figf);
   --cps: 95; --blink: .9s; --lamp: 8s; --eye-dur: 6s; --rain: 1; --wind: 1; --bolt: .6;
 }
-/* plain daylight: light cyan, dark blue text */
+/* plain daylight: the brand blue, the headings go white-yellow, the links are bold */
 [data-paletti="paiva"] {
-  --bg: #55ffff; --fg: #00007a; --head: #aa0000; --link: #0000aa;
-  --card-bg: #00007a; --card-fg: #55ffff; --shadow: #000000; --eye: #aa0000; --sun: #aa5500;
-  --logo-filter: none; --fig-filter: url(#figf);
+  --bg: #0000ff; --fg: #ffffff; --head: #ffffaa; --link: #00ffff;
+  --card-bg: #ffffff; --card-fg: #ff0000; --shadow: #000000; --eye: #ff0000; --sun: #ffffaa;
+  --logo-filter: none; --fig-filter: none;
   --cps: 125; --blink: .6s; --lamp: 14s; --eye-dur: 4s; --rain: .5; --wind: 0; --bolt: 0;
 }
+[data-paletti="paiva"] a, [data-paletti="paiva"] .capact, [data-paletti="paiva"] .choices a { font-weight: 700; text-decoration-thickness: 2px; }
 /* the dark days around the end of October and Friday the 13th: black, orange, green */
 [data-paletti="halloween"] {
   --bg: #000000; --fg: #ff8800; --head: #55ff55; --link: #ffffff;
-  --card-bg: #ff8800; --card-fg: #000000; --shadow: #553300; --eye: #55ff55; --sun: #ff8800;
+  --card-bg: #ffffff; --card-fg: #ff0000; --shadow: #000000; --eye: #ff0000; --sun: #ff8800;
   --logo-filter: invert(1); --fig-filter: url(#figf);
   --cps: 85; --blink: 1s; --lamp: 3s; --eye-dur: 3s; --rain: 1; --wind: -1; --bolt: .8;
 }
 /* rare, seeded (a few visits in a hundred): magenta and green. Odd, fast, restless */
 [data-paletti="outo"] {
   --bg: #aa00aa; --fg: #ffffff; --head: #55ff55; --link: #ffff55;
-  --card-bg: #55ff55; --card-fg: #aa00aa; --shadow: #000000; --eye: #ffff55; --sun: #ffff55;
+  --card-bg: #ffffff; --card-fg: #ff0000; --shadow: #000000; --eye: #ff0000; --sun: #ffff55;
   --logo-filter: invert(1); --fig-filter: url(#figf);
   --cps: 90; --blink: .3s; --lamp: 2.5s; --eye-dur: 1.5s; --rain: 1.6; --wind: -1; --bolt: 2;
 }
@@ -173,23 +176,34 @@ h2:focus { outline: none; }
 .beat.scrolly { overflow-y: auto; }
 p { margin: 0 0 1.15em; }
 .beat p.t { margin-bottom: 1.05em; }
-.beat.t1 p, .beat.t1 .choices li { margin-bottom: .6em; }
-.beat.t2 p, .beat.t2 .choices li { margin-bottom: .28em; }
+.beat.t1 p { margin-bottom: .6em; }
+.beat.t2 p { margin-bottom: .28em; }
+.beat.t1 .choices li { margin-bottom: 8px; }
+.beat.t2 .choices li { margin-bottom: 8px; }
+.beat.t1 .choices li a { padding-top: 4px; padding-bottom: 4px; }
+.beat.t1 .choices li::before { top: 7px; }
+.beat.t2 .choices li a { padding-top: 2px; padding-bottom: 2px; }
+.beat.t2 .choices li::before { top: 5px; }
 .beat.hold .choices, .beat.hold .more { visibility: hidden; }
 
 /* typing: the not-yet-typed text is laid out but invisible, so nothing jumps */
 .gh { visibility: hidden; }
 .typing .asidebtn { visibility: hidden; }
 
-/* "> JATKA" prompt */
+/* "> JATKA" prompt: a large bar at the bottom of the text area on every screen (the whole bar is the tap target) */
 .more {
-  align-self: flex-start; margin: auto 0 0; padding: 4px 8px 4px 0; min-height: 36px;
-  background: transparent; border: 0; color: var(--fg); font: inherit; cursor: pointer;
-  animation: blink calc(var(--blink) * 1.25) steps(1) infinite;
+  align-self: stretch; margin: auto 0 0; padding: 0 14px; min-height: 52px; display: flex; align-items: center; position: relative;
+  background: transparent; border: 2px solid var(--link); color: var(--fg); font: inherit; text-align: left; cursor: pointer;
+  -webkit-tap-highlight-color: transparent; touch-action: manipulation;
 }
-.more.dl { animation: none; cursor: default; }
+.more .mk { margin-right: .5em; color: var(--link); animation: blink calc(var(--blink) * 1.25) steps(1) infinite; }
+.more:active, .more.tapped { background: var(--link); color: var(--bg); }
+.more:active .mk, .more.tapped .mk { color: var(--bg); }
+.more.dl { cursor: default; }
 .more:focus-visible { outline: 3px solid var(--head); outline-offset: 2px; }
 .more[hidden] { display: none; }
+.canadv #stage, .canadv h2 { cursor: pointer; }
+.canadv .pic, .canadv .pic *, .canadv .beat a, .canadv button { cursor: pointer; }
 
 /* links */
 a { color: var(--link); text-decoration: underline; }
@@ -198,18 +212,23 @@ a:focus-visible, button:focus-visible, input:focus-visible, textarea:focus-visib
   outline: 3px solid var(--head); outline-offset: 3px;
 }
 
-/* choices: "> " prefix */
+/* choices: "> " prefix; the whole row is the tap target (at least 44px high, 8px between rows) */
 .choices { list-style: none; padding: 0; margin: 0; overflow-wrap: anywhere; }
-.choices li { position: relative; padding-left: 1.1em; margin-bottom: 1.15em; animation: appear 1ms steps(1) both; }
+.choices li { position: relative; display: flex; align-items: flex-start; margin-bottom: 8px; animation: appear 1ms steps(1) both; }
 .choices li:last-child { margin-bottom: 0; }
-.choices li::before { content: ">"; position: absolute; left: 0; color: var(--fg); }
+.choices li a { display: flex; align-items: center; flex: 1 1 auto; min-width: 0; min-height: 44px; padding: 7px 4px 7px 1.3em; -webkit-tap-highlight-color: transparent; touch-action: manipulation; cursor: pointer; }
+.choices li::before { content: ">"; position: absolute; left: 4px; top: 9px; color: var(--link); pointer-events: none; }
 .choices li:hover::before, .choices li:focus-within::before { animation: blink .6s steps(1) infinite; }
+.choices li a:active, .choices li a.tapped { background: var(--link); color: var(--bg); text-decoration: none; }
+.choices li:active::before { color: var(--bg); }
+.choices li .asidebtn { flex: none; margin: 0; }
+.nudge .choices li::before { animation: blink .14s steps(1) 4; }
 @keyframes appear { from { opacity: 0; } to { opacity: 1; } }
 
 /* asides (tap-to-reveal jokes): a panel over the bottom of the text, so the layout never changes */
 .asidebtn {
   position: relative; vertical-align: middle;
-  min-width: 44px; min-height: 44px; margin: -14px -4px -14px 2px;
+  min-width: 44px; min-height: 44px; margin: -14px -4px -14px 2px; touch-action: manipulation;
   padding: 0; background: transparent; border: 0; cursor: pointer;
   color: var(--head); font: inherit; line-height: 1;
 }
@@ -330,6 +349,9 @@ iframe.map { position: absolute; left: 0; top: 0; width: 100%; height: 100%; bor
 .footlinks .gal { text-decoration: none; padding: 0 4px; }
 .prev { width: 36px; height: 34px; padding: 0; background: transparent; border: 0; color: var(--fg); font: inherit; font-size: 18px; cursor: pointer; }
 .prev:disabled { cursor: default; }
+.prev, .footlinks a { position: relative; touch-action: manipulation; }
+.prev::after, .footlinks a::after { content: ''; position: absolute; left: -4px; right: -4px; top: -10px; bottom: -4px; }
+.prev:active, .footlinks a:active { background: var(--link); color: var(--bg); }
 
 /* on-screen keyboard: give the question all the room */
 .kbd .top, .kbd #otsikko, .kbd .foot { display: none; }
@@ -421,13 +443,20 @@ html:not(.js) #formhold, html:not(.js) #fx { display: none; }
    ====================================================================================================== */
 /* tighter and tighter layouts when something does not fit (the engine picks the lowest level that fits) */
 .beat.t3 { font-size: .88em; line-height: 1.1; }
-.beat.t3 p, .beat.t3 .choices li { margin-bottom: .25em; }
+.beat.t3 p { margin-bottom: .25em; }
+.beat.t3 .choices li, .beat.t4 .choices li { margin-bottom: 6px; }
+.beat.t3 .choices li a { min-height: 44px; padding-top: 3px; padding-bottom: 3px; }
+.beat.t4 .choices li a { min-height: 40px; padding-top: 3px; padding-bottom: 3px; }
+@media (max-height: 520px) { .choices li a { min-height: 34px; padding-top: 4px; padding-bottom: 4px; } .choices li::before { top: 5px; } .more { min-height: 40px; } }
+@media (max-height: 360px) { .choices li { margin-bottom: 3px; } .choices li a { min-height: 0; padding-top: 1px; padding-bottom: 1px; } .choices li::before { top: 2px; } .more { min-height: 28px; } .capact { min-height: 30px; padding-top: 3px; padding-bottom: 3px; } .beat.t3 .choices li a, .beat.t4 .choices li a { min-height: 0; padding-top: 0; padding-bottom: 0; } }
+@media (max-height: 300px) { .beat.t3 .choices li a, .beat.t4 .choices li a { min-height: 0; padding-top: 0; padding-bottom: 0; } }
+.beat.t3 .choices li::before, .beat.t4 .choices li::before { top: 6px; }
 .beat.t4 { font-size: .74em; line-height: 1.08; }
-.beat.t4 p, .beat.t4 .choices li { margin-bottom: .18em; }
+.beat.t4 p { margin-bottom: .18em; }
 .beat.t3 .card, .beat.t4 .card { font-size: 1em; padding: 6px 8px 0; margin: 2px 8px 8px 2px; box-shadow: 5px 5px 0 0 var(--shadow); }
 .beat.t3 .card p, .beat.t4 .card p { margin-bottom: .3em; }
 .beat.t3 .sign, .beat.t4 .sign { padding: .25em .5em; margin-bottom: .4em; }
-.beat.t3 .more, .beat.t4 .more { min-height: 28px; padding-top: 0; padding-bottom: 0; }
+.beat.t3 .more, .beat.t4 .more { min-height: 44px; }
 .beat.t3 .field, .beat.t4 .field { margin-bottom: 6px; }
 .beat.t3 input[type="text"], .beat.t3 .btn, .beat.t4 input[type="text"], .beat.t4 .btn { height: 36px; font-size: 1em; }
 .beat.t3 textarea, .beat.t4 textarea { height: 64px; font-size: 1em; padding-top: 6px; }
@@ -435,7 +464,7 @@ html:not(.js) #formhold, html:not(.js) #fx { display: none; }
 .beat.t3 .formstatus, .beat.t4 .formstatus { margin-top: 6px; font-size: .9em; }
 .beat.t3 .privacy, .beat.t4 .privacy { margin-top: 2px; }
 .beat.t3 .asidebtn, .beat.t4 .asidebtn { min-height: 32px; margin-top: -8px; margin-bottom: -8px; }
-.beat.t3 .pic { --imgmin: 130px; } .beat.t4 .pic { --imgmin: 100px; }
+.beat.t3 .pic { --imgmin: 110px; } .beat.t4 .pic { --imgmin: 90px; }
 
 /* spoken lines: yellow with a quote mark */
 p.say { color: var(--head); }
@@ -473,15 +502,33 @@ p.dice { margin-bottom: 1em; color: var(--head); }
 @keyframes drift { 0% { transform: translate(0, 0); } 20% { transform: translate(.4em, -.35em); } 45% { transform: translate(-.2em, .1em); } 70% { transform: translate(.9em, -.2em); } 100% { transform: translate(0, 0); } }
 
 /* ---------- pictures with hotspots ---------- */
-.pic { --imgmin: 170px; --panelh: 0px; flex: 1 1 0; min-height: calc(var(--imgmin) + var(--panelh)); display: flex; flex-direction: column; align-items: center; overflow: hidden; margin: 0 0 4px; }
-.pic.person { --imgmin: 100px; }
+/* the picture takes what is left of the column (never less than --imgmin); sizePics() makes the window as wide as the column and crops to the focus box */
+.pic { --imgmin: max(120px, min(42vw, 240px)); flex: 1 1 0; min-height: calc(var(--imgmin) + 26px); display: flex; flex-direction: column; align-items: center; overflow: hidden; margin: 0 0 4px; }
+/* a picture with tappable hotspots must be big enough for 44px hit areas, otherwise it is left out as before */
+.pic[data-spots] { --imgmin: max(130px, min(42vw, 240px)); }
+.pic-ovi[data-spots] { --imgmin: max(210px, min(56vw, 260px)); }   /* the door's hotspots lie close together: they need the height */
+.pic.person { --imgmin: max(90px, min(30vw, 200px)); min-height: var(--imgmin); }
 .picwrap { position: relative; flex: none; width: 100px; height: 60px; overflow: hidden; }
+.picin { position: absolute; left: 0; top: 0; width: 100%; height: 100%; }
 .picimg { display: block; width: 100%; height: 100%; -webkit-filter: var(--fig-filter); filter: var(--fig-filter); }
 .picwrap.fb img { transform-origin: 50% 60%; }
 .picwrap.fb.s1 img { transform: scale(.45); } .picwrap.fb.s2 img { transform: scale(.6); } .picwrap.fb.s3 img { transform: scale(.82); }
+/* caption bar: the first-time hint, then the name of the hovered or selected hotspot (one line, always reserved) */
+.capbar { flex: none; width: 100%; min-height: 26px; padding-top: 4px; font-size: 14px; line-height: 1.3; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--fg); }
+.capbar.named { color: var(--head); }
+.capname { display: block; overflow: hidden; text-overflow: ellipsis; }
+/* the text slot under the picture: the beat's text, or (while a hotspot is selected) its look line and the big action button */
+.slot { position: relative; flex: none; }
+.slot .cappanel { display: none; position: absolute; left: 0; right: 0; top: 0; z-index: 3; background: var(--bg); }
+.slot.sel .cappanel { display: block; }
+.slot.sel > p.t { visibility: hidden; }
+.caplook { margin: 0 0 6px; font-size: .86em; line-height: 1.25; }
+.capact { display: block; width: 100%; min-height: 48px; margin: 0; padding: 8px 12px; background: transparent; border: 2px solid var(--link); color: var(--link); font: inherit; font-size: .86em; line-height: 1.2; text-align: left; cursor: pointer; touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
+.capact:active, .capact.tapped { background: var(--link); color: var(--bg); }
+.capact[hidden] { display: none; }
 .pic-avaus .stamp { position: absolute; left: 2.5%; top: 2%; margin: 0; font-size: 12px; line-height: 1.2; color: var(--fg); max-width: 60%; }
-.pic-avaus .moon { position: absolute; left: 80%; top: 6%; width: 9%; height: auto; image-rendering: -moz-crisp-edges; image-rendering: pixelated; }
-.pic-avaus .picwrap.port .moon { left: 72%; top: 9%; width: 16%; }
+.pic-avaus .moon { position: absolute; left: 0; top: 0; width: 32px; height: 32px; image-rendering: -moz-crisp-edges; image-rendering: pixelated; }
+.skystrip { position: relative; flex: none; width: 100%; height: 0; overflow: hidden; }
 .stampline { font-size: 12px; line-height: 1.25; margin: 0 0 .5em; color: var(--fg); }
 .lamp { position: absolute; background: var(--bg); opacity: 0; pointer-events: none; animation: lampflick 9s steps(1) infinite; }
 .lamp.bad { animation-duration: 4.5s; }
@@ -495,10 +542,18 @@ p.dice { margin-bottom: 1em; color: var(--head); }
 .pic-hahmo .picwrap.fb .eye { top: 26.4%; }
 .cast { position: absolute; width: auto; transform: translateX(-50%); -webkit-filter: var(--fig-filter); filter: var(--fig-filter); image-rendering: pixelated; pointer-events: none; visibility: hidden; animation: pop 1ms steps(1) forwards; }
 @keyframes pop { to { visibility: visible; } }
-.spot { position: absolute; margin: 0; padding: 0; background: transparent; border: 2px solid var(--head); opacity: 0; cursor: pointer; z-index: 2; }
-.spot:hover, .spot:focus-visible { opacity: 1; outline: none; background: rgba(255, 255, 255, .12); }
-.pic.reveal .spot:not(.secret) { opacity: 1; animation: spotblink .9s steps(1) 3; }
-@keyframes spotblink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
+/* hotspots: invisible hit areas; the ones that lead somewhere carry a small blinking corner bracket in the link colour (always, not only on arrival);
+   look-only curiosities stay unmarked. Hover / focus / selection draw the full outline. */
+.spot { position: absolute; margin: 0; padding: 0; background: transparent; border: 2px solid transparent; cursor: pointer; z-index: 2; touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
+.spot.go::before, .spot.go::after { content: ''; position: absolute; width: 12px; height: 12px; pointer-events: none; animation: bracket 1.8s steps(1) infinite; }
+.spot.go::before { left: 1px; top: 1px; border-left: 3px solid var(--link); border-top: 3px solid var(--link); }
+.spot.go::after { right: 1px; bottom: 1px; border-right: 3px solid var(--link); border-bottom: 3px solid var(--link); }
+.spot.secret::before, .spot.secret::after { display: none; }
+@keyframes bracket { 0%, 55% { opacity: 1; } 56%, 100% { opacity: .25; } }
+.spot:hover, .spot:focus-visible, .spot:active { border-color: var(--head); outline: none; background: rgba(255, 255, 255, .12); }
+.spot:active { background: rgba(255, 255, 255, .3); }
+.pic.reveal .spot:not(.secret) { border-color: var(--head); animation: spotblink .9s steps(1) 3; }
+@keyframes spotblink { 0%, 100% { border-color: var(--head); } 50% { border-color: transparent; } }
 /* the whole cast of the cut-out is the hotspot; the verb bar is not needed in the portrait close-up */
 
 /* ---------- boot ---------- */
@@ -513,7 +568,7 @@ p.dice { margin-bottom: 1em; color: var(--head); }
 @media (max-width: 360px) { h2, .plain h1.page { font-size: 1.45rem; } .hud { font-size: 10px; }  }
 @media (max-width: 260px) { body { font-size: 1rem; } h2 { font-size: 1.1rem; } .hudinv, #hud-loput { display: none; } .logo img { max-width: 160px; } .logowrap { max-width: 160px; } .foot { font-size: 10px; } .footlinks li { margin-left: 8px; } }
 @media (max-height: 300px) { .top { display: none; } h2 { font-size: 1.1rem; margin-bottom: .2em; } body { font-size: 1rem; } .foot { font-size: 10px; } .footrow { min-height: 28px; } .footlinks a { min-height: 28px; } .prev { height: 28px; } }
-@media (prefers-reduced-motion: reduce) { .cast { visibility: visible; } .pic.reveal .spot:not(.secret) { animation: none; } .lamp, .bag, .pumpkin { animation: none; } .lamp { display: none; } .bag { display: none; } }
+@media (prefers-reduced-motion: reduce) { .cast { visibility: visible; } .pic.reveal .spot:not(.secret) { animation: none; } .spot.go::before, .spot.go::after { animation: none; opacity: 1; } .lamp, .bag, .pumpkin { animation: none; } .lamp { display: none; } .bag { display: none; } }
 
 .ending { display: flex; flex-wrap: wrap; align-items: flex-start; }
 .ending .enseal { display: block; width: 44px; height: 44px; margin: 0 .6em 0 0; -webkit-filter: var(--fig-filter); filter: var(--fig-filter); }
@@ -531,8 +586,14 @@ p.dice { margin-bottom: 1em; color: var(--head); }
   .hudi { font-size: 8px; line-height: 10px; margin: 0 2px; }
   .pic, .beat.t3 .pic, .beat.t4 .pic { --imgmin: 64px; margin-bottom: 2px; }
   .pic.person { --imgmin: 56px; }
+  .capbar { min-height: 20px; padding-top: 2px; font-size: 11px; }
     .mapscreen { min-height: 40px; }
   .more { min-height: 24px; }
+  .choices li { margin-bottom: 3px; }
+  .choices li a { min-height: 0; padding-top: 1px; padding-bottom: 1px; }   /* 200 % zoom: CSS pixels are twice as big, the targets stay physically large */
+  .choices li::before { top: 2px; }
+  .capact { min-height: 30px; padding-top: 3px; padding-bottom: 3px; }
+  .capbar { min-height: 18px; }
   .beat.t3 .more, .beat.t4 .more { min-height: 22px; }
   .foot { padding-bottom: 0; }
   .footrow { min-height: 26px; }
@@ -541,23 +602,19 @@ p.dice { margin-bottom: 1em; color: var(--head); }
   .formstatus { font-size: .8em; }
 }
 @media (max-height: 360px) { .beat.t4 .pic { --imgmin: 60px; } }
+@media (max-width: 360px) { .capbar { font-size: 12px; } }
 @media (max-width: 260px) { h2 { font-size: .85rem; line-height: 1.1; margin-bottom: .2em; } body { font-size: .9rem; line-height: 1.2; } .beat.t3, .beat.t4 { font-size: .8em; } .top { padding-top: 2px; } .logo img { max-width: 120px; } .logowrap { max-width: 120px; } }
 
 
 /* typewriter cursor: a block that sits on the baseline of the line being typed, at cap height (baseline aligned, so it follows every font size and engine) */
 .cursor { display: inline-block; width: .6em; height: .68em; margin-left: 1px; background: var(--fg); vertical-align: baseline; animation: blink var(--blink) steps(1) infinite; }
 
-/* hotspots: a tap only selects; the caption panel under the picture is part of the layout (its height is reserved) */
-.spot.sel { opacity: 1; background: rgba(255, 255, 255, .14); border-width: 3px; }
-.spot.on { opacity: 1; border-style: dashed; }
-.cappanel { flex: none; width: 100%; padding-top: 3px; overflow: hidden; font-size: 13px; line-height: 1.2; }
-.cappanel p { margin: 0; }
-.capname { color: var(--head); }
-.caplook { margin-top: 1px; }
-.capact { display: block; margin: 3px 0 0; padding: 0; min-height: 30px; background: transparent; border: 0; color: var(--link); font: inherit; font-size: 13px; line-height: 1.2; text-align: left; text-decoration: underline; cursor: pointer; }
-.capact[hidden] { display: none; }
+.spot.sel { border-color: var(--head); border-width: 3px; background: rgba(255, 255, 255, .14); }
+.spot.sel::before, .spot.sel::after { animation: none; }
+.spot.on { border-color: var(--head); border-style: dashed; }
 .choices li.hl::before { animation: blink .6s steps(1) infinite; }
 .choices li.hl a { background: var(--head); color: var(--bg); text-decoration: none; }
+.choices li.hl::before { color: var(--bg); }
 
 /* the dice are an event: their own beat, centred and large */
 p.dice { display: flex; flex-direction: column; align-items: center; margin: auto 0 .6em; color: var(--head); }
@@ -576,3 +633,11 @@ p.dice { display: flex; flex-direction: column; align-items: center; margin: aut
 .hudi[hidden] { display: none; }
 
 .beat.rollhold p.t { visibility: hidden; }
+
+/* pictures with hotspots keep their own minimum (see .pic[data-spots]); the tight layouts and very low screens may shrink it like any other picture */
+.beat.t3 .pic[data-spots], .beat.t3 .pic-ovi[data-spots] { --imgmin: 110px; }
+.beat.t4 .pic[data-spots], .beat.t4 .pic-ovi[data-spots] { --imgmin: 90px; }
+@media (max-height: 360px) { .beat.t4 .pic[data-spots], .beat.t4 .pic-ovi[data-spots] { --imgmin: 60px; } }
+@media (max-height: 300px) {
+  .pic[data-spots], .pic-ovi[data-spots], .beat.t3 .pic[data-spots], .beat.t4 .pic[data-spots], .beat.t3 .pic-ovi[data-spots], .beat.t4 .pic-ovi[data-spots] { --imgmin: 64px; }
+}

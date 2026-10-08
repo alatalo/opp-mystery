@@ -139,6 +139,7 @@
     var box = $('now'); box.innerHTML = '';
     lines.forEach(function (l) { var p = document.createElement('p'); p.textContent = l; box.appendChild(p); });
     drawSwatches(G.palette(c));
+    var cr = $('ctlresult'); if (cr) { cr.textContent = 'Nyt voimassa: ' + (lines[0] || '') + (lines[1] ? ' / ' + lines[1] : '') + ' / paletti ' + G.palette(c) + ' (korostettu Väripaleteissa ylhäällä)'; }
     CONTROLS.forEach(function (ct) { var e = $('hc-' + ct[0]); if (e) { e.textContent = CUR[ct[0]] ? CUR[ct[0]](c) : ''; } });
     return c;
   }
@@ -286,7 +287,7 @@
   function renderPictures() {
     var box = $('pics'); box.innerHTML = '';
     var name, i;
-    function addPic(file, label, rects, places) {
+    function addPic(file, label, rects, places, skyBox) {
       var h = document.createElement('h3'); h.textContent = label; box.appendChild(h);
       var w = document.createElement('div'); w.className = 'picov';
       var im = document.createElement('img'); im.src = 'assets/img/' + file; im.alt = ''; w.appendChild(im);
@@ -294,6 +295,7 @@
         var d = document.createElement('div'); d.className = 'ov'; d.style.left = r.r[0] + '%'; d.style.top = r.r[1] + '%'; d.style.width = r.r[2] + '%'; d.style.height = r.r[3] + '%';
         var sp = document.createElement('span'); sp.textContent = r.name; d.appendChild(sp); w.appendChild(d);
       });
+      if (skyBox) { var sd = document.createElement('div'); sd.className = 'ov sky'; sd.style.left = skyBox[0] + '%'; sd.style.top = skyBox[1] + '%'; sd.style.width = skyBox[2] + '%'; sd.style.height = skyBox[3] + '%'; var ss = document.createElement('span'); ss.textContent = 'TAIVAS (kuu vain tähän)'; sd.appendChild(ss); w.appendChild(sd); }
       (places || []).forEach(function (pl) {
         var d = document.createElement('div'); d.className = 'ov place'; d.style.left = (pl.x - pl.h * 0.2) + '%'; d.style.top = (pl.y - pl.h) + '%'; d.style.width = (pl.h * 0.4) + '%'; d.style.height = pl.h + '%';
         var sp = document.createElement('span'); sp.textContent = 'PAIKKA ' + pl.n; d.appendChild(sp); w.appendChild(d);
@@ -323,7 +325,7 @@
         });
         var pls = [], k;
         for (k in pic.places) { var pos = (portrait && pic.places[k].p) || pic.places[k].l; if (pos) { pls.push({ n: k, x: pos[0], y: pos[1], h: pos[2] }); } }
-        addPic(PIC_FILES[name][i], name + ' (' + PIC_FILES[name][i] + (stageNo ? ', vaihe ' + stageNo : '') + ')', rects, pls);
+        addPic(PIC_FILES[name][i], name + ' (' + PIC_FILES[name][i] + (stageNo ? ', vaihe ' + stageNo : '') + ')', rects, pls, (pic.sky && pic.sky[portrait ? 'p' : 'l']) || null);
       }
     }
   }
@@ -343,7 +345,20 @@
   function refresh() { try { render(); } catch (e) { var p = document.createElement('p'); p.className = 'err'; p.textContent = 'Sivun piirto epäonnistui: ' + e.message; $('errors').appendChild(p); } }
 
   buildControls();
-  (function () { var fb = document.getElementById('logofx'); if (fb) { fb.addEventListener('click', function (e) { var t = e.target; if (t && t.getAttribute && t.getAttribute('data-fx') && window.PaitaLogo) { window.PaitaLogo.test(t.getAttribute('data-fx')); } }); } })();
+  (function () {
+    var fb = document.getElementById('logofx'), st = document.getElementById('logostatus'), mq = window.matchMedia ? window.matchMedia('(prefers-reduced-motion: reduce)') : null, tm = null;
+    if (!fb) { return; }
+    fb.addEventListener('click', function (e) {
+      var t = e.target; if (!t || !t.getAttribute || !t.getAttribute('data-fx')) { return; }
+      var all = fb.querySelectorAll('button'), i;
+      for (i = 0; i < all.length; i++) { all[i].className = ''; }
+      if (mq && mq.matches) { st.textContent = 'Tehosteet ovat pois päältä, koska laite pyytää vähemmän liikettä. Siksi logossa ei tapahdu mitään.'; return; }
+      var ok = window.PaitaLogo && window.PaitaLogo.test(t.getAttribute('data-fx'));
+      st.textContent = ok ? 'Laukaistu: ' + t.getAttribute('data-d') + '.' : 'Tehostetta ei voitu ajaa tässä selaimessa.';
+      t.className = 'on'; clearTimeout(tm); tm = setTimeout(function () { t.className = ''; }, 1500);
+    });
+    if (mq && mq.matches) { st.textContent = 'Tehosteet ovat pois päältä, koska laite pyytää vähemmän liikettä. Painikkeet eivät tee mitään.'; }
+  })();
   $('reset').addEventListener('click', function () { CONTROLS.forEach(function (c) { $('c-' + c[0]).value = ''; }); refresh(); });
   function loaded(text, failed) {
     try { story = S.parse(text); } catch (e) { story = { scenes: {}, order: [], detours: [], errors: [{ line: 0, msg: 'Jäsennys kaatui: ' + e.message }], warnings: [] }; }

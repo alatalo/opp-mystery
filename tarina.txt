@@ -31,6 +31,8 @@
 #   OTA kynä               kävijä saa esineen (lauta ja kynä)
 #   HAHMO asukas-1 PAIKKA 2   henkilö seisoo kuvassa (JOS/KUN-ehto edellä rajaa milloin)
 #   KUVA nimi / KOHTA ...  kuvan klikattavat kohdat (osio tiedoston lopussa)
+#   RAJAUS x y w h / TAIVAS x y w h   kuvan osio: pienellä näytöllä näkyviin jäävä osa / tyhjä taivas (kuu vain sinne)
+#   {aika}                 vuorokaudenaika sanana (yö, aamu, päivä, ilta) otsikoissa, joiden ehto ei kerro kellonaikaa
 #   HENKILÖ tunnus         keskustelu: aiheet, vastaukset (osio tiedoston lopussa)
 #   PERILLE kohtaus        kiertotien määränpää (kiertotie ei jatka alkuperäiseen kohteeseen)
 #   Uudet ehdot: kello 14-15, kahvitauko, lounas, sulkemishetki, yövuoro, hahmo 3, spoopy, halloween,
@@ -100,7 +102,7 @@ OTSIKKO: On synkkä ja myrskyinen yö
 # ja yhtä monen ehdon välillä voittaa ensimmäinen).
 # LUONNOS
 KUN halloween JA aina
-OTSIKKO: On synkkä ja myrskyinen yö, ja joku on sytyttänyt kynttilät
+OTSIKKO: On synkkä ja myrskyinen {aika}, ja joku on sytyttänyt kynttilät
 
 # LUONNOS
 KUN perjantai 13 JA aina
@@ -108,7 +110,7 @@ OTSIKKO: On synkkä ja myrskyinen perjantai, kolmastoista
 
 # LUONNOS
 KUN palaava JA aina
-OTSIKKO: Miten voi olla, että jälleen on synkkä ja myrskyinen yö
+OTSIKKO: Miten voi olla, että jälleen on synkkä ja myrskyinen {aika}
 
 # LUONNOS
 KUN yötön yö JA päivä
@@ -116,10 +118,10 @@ OTSIKKO: On valoisa ja tyyni päivä, eikä se auta
 
 # LUONNOS
 KUN yötön yö JA aina
-OTSIKKO: On valoisa ja tyyni yö
+OTSIKKO: On valoisa ja tyyni {aika}
 
 # LUONNOS
-KUN kaamos JA pimeää
+KUN kaamos JA päivä
 OTSIKKO: On synkkä ja myrskyinen päivä, ainakin kellon mukaan
 
 # LUONNOS
@@ -136,11 +138,11 @@ OTSIKKO: On synkkä ja myrskyinen ilta
 
 # LUONNOS (kuun otsikot näkyvät yöllä, kun mikään ylempi ei sovi)
 KUN täysikuu JA pimeää
-OTSIKKO: On synkkä ja myrskyinen yö, ja kuu näkee kaiken
+OTSIKKO: On synkkä ja myrskyinen {aika}, ja kuu näkee kaiken
 
 # LUONNOS
 KUN uusikuu JA pimeää
-OTSIKKO: On synkkä, myrskyinen ja kuuton yö
+OTSIKKO: On synkkä, myrskyinen ja kuuton {aika}
 
 # LUONNOS (avauskuva: sen päällä on kuu oikeassa vaiheessaan, leima, valo ja viikonpäivä. Kuvan kohtia voi napauttaa. Kuva jää pois, jos se tekisi tiestä pidemmän)
 NÄYTÄ avaus
@@ -405,7 +407,7 @@ Kunpa vastausta ei tarvitsisi odotella pitkään. Pakkanen on vienyt tunnon sorm
 
 # LUONNOS
 KUN yötön yö
-Kunpa vastausta ei tarvitsisi odotella pitkään. Aurinko paistaa niskaasi, vaikka on yö. Lipan alla on pihan ainoa varjo, ja seisot siinä.
+Kunpa vastausta ei tarvitsisi odotella pitkään. Aurinko ei ole laskenut päiviin. Lipan alla on pihan ainoa varjo, ja seisot siinä.
 
 # v1
 Ovenpieleen, lipan alle, on naulattu pieni kilpi, jossa on puhelinnumero. Paperin kulmaan joku on kirjoittanut sähkeosoitteen siistillä käsialalla.
@@ -437,7 +439,7 @@ Edellinen lappusi on poissa oven välistä. Joku on ottanut sen. Voit kirjoittaa
 OTSIKKO: Raapustat lappua
 
 # LUONNOS
-KUN yö
+KUN yö JA pimeää
 OTSIKKO: Raapustat lappua pimeässä
 
 # LUONNOS
@@ -702,7 +704,7 @@ Ilmoituksen alla on nuoli, joka osoittaa pihalle. Alimpana on sähkeosoite.
 > Seuraat nuolta pihalle. -> kartta
 
 # LUONNOS
-KUN yö
+KUN yö JA pimeää
 > Seuraat nuolta pimeälle pihalle. -> kartta
 
 # v1
@@ -718,7 +720,7 @@ OTSIKKO: Olet hukassa
 Sillä välin kun katselit ympärillesi on hahmo kadonnut.
 
 # LUONNOS
-KUN täysikuu
+KUN täysikuu JA pimeää
 Sillä välin kun katselit ympärillesi on hahmo kadonnut. Kuu valaisee lattian siitä kohdasta, missä se seisoi. Lattiassa on kaksi kulunutta kohtaa, jalkojen levyiset.
 
 # LUONNOS
@@ -1314,7 +1316,7 @@ On maanantai, ja ovi on lukossa. Kahvassa roikkuva lyijykynä heiluu, vaikka lip
 
 KIERTOTIE kaamos
 VÄLILLÄ * -> *
-KUN kaamos JA arpa 30%
+KUN kaamos JA päivä JA arpa 30%
 OTSIKKO: Aurinko
 
 # LUONNOS
@@ -1427,6 +1429,13 @@ Valo paloi ikkunassa
 
 KUVA avaus
 # Luvut ovat prosentteja kuvasta (lopulliset arvot kuvat.json:sta). Galaksi.html "Kuvat ja kohdat" piirtää ne kuvan päälle.
+# RAJAUS: osa kuvasta, jonka pitää pysyä näkyvissä pienellä näytöllä (x y leveys korkeus, prosentteja). Muu osa (tyhjä taivas) voidaan leikata pois.
+# Ikkuna, kaareva lippa ovineen, pihakalusteet, kyltti ja pihalla seisovat.
+RAJAUS: 3 40 90 60
+RAJAUS PYSTY: 0 42 100 58
+# TAIVAS: tyhjä taivas (kuu piirretään vain sinne): vaakakuvassa kattolinjan yläpuolinen kaista, pystykuvassa räystään yläpuolinen kaista.
+TAIVAS: 0 0 100 22
+TAIVAS PYSTY: 0 0 100 21
 # LUONNOS
 KOHTA ikkuna: 52.8 59 10 15.5
 PYSTY: 29 54 22 20
@@ -1483,6 +1492,8 @@ PAIKKA 2 PYSTY: 38 99 20
 PAIKKA 3: 38 99 26
 
 KUVA ovi
+# RAJAUS: ovi, kahva ja paperi (lipan kaari ylhäällä saa jäädä pois; tiukka rajaus pitää osuma-alueet isoina)
+RAJAUS: 5 28 90 54
 # LUONNOS (ovikuva: vain yksi kuva, ei pystyversiota)
 KOHTA ovi: 15 30 70 56
 NIMI: Ovi
@@ -1506,6 +1517,8 @@ NIMI: Lamppu
 KATSO: Lamppu lipan alla. Se palaa himmeästi ja sirisee.
 
 KUVA kaytava
+# RAJAUS: oviaukko keskellä (vaakakuvassa leikataan reunat)
+RAJAUS: 15 0 70 100
 # LUONNOS
 KOHTA oviaukko: 45 42.3 10 15
 PYSTY: 42.5 42.4 15 10.9
@@ -1526,6 +1539,18 @@ NIMI: Matto
 KATSO: Matto on kostea. Se antaa jalan alla periksi hieman liikaa.
 
 
+KUVA hahmo
+# Hahmo lasin takana: vain RAJAUS (kuvassa ei ole napautettavia kohtia). Numero = hahmon vaihe 1-4, ilman numeroa = vara-kuva.
+RAJAUS 1: 8 30 84 68
+RAJAUS 2: 0 22 100 78
+RAJAUS 3: 0 12 100 88
+RAJAUS 4: 0 0 100 100
+RAJAUS: 0 20 100 80
+
+KUVA omistaja
+# Hupun laskenut omistaja: rintakuva
+RAJAUS: 5 0 90 72
+
 # ====================================================================================
 #  HENKILÖT: keskustelu on lähikuva. Aiheet valitaan listasta, vastauksia ei kirjoiteta itse.
 #  HENKILÖ tunnus / NIMI / KUVA (kuvatiedoston nimi) / KATSO / TERVEHDYS / POISTUU (kohtaus jonne hyvästi vie)
@@ -1536,6 +1561,7 @@ HENKILÖ asukas-1
 # LUONNOS (lippis, huivi, kassi: kaikki menevät)
 NIMI: Lippalakkinen
 KUVA: asukas-1
+RAJAUS: 5 4 90 72
 KATSO: Lippis syvällä silmillä, huivi nenään asti, kangaskassi kädessä. Takin selkään on painettu kani, jolla on silmälappu.
 POISTUU: piha-1
 TERVEHDYS: Kas, uusi kasvo! Arvasin, että tulet. Kaikki tulevat.
@@ -1569,6 +1595,7 @@ HENKILÖ asukas-2
 # LUONNOS (kahvimuki kasvojen edessä: hörps)
 NIMI: Mukinkantaja
 KUVA: asukas-2
+RAJAUS: 0 0 100 72
 KATSO: Pipo, vaalea takki ja kasvojen edessä pahvimuki, joka on suurempi kuin pää.
 POISTUU: piha-2
 TERVEHDYS: (hörps) Päivää. Olet menossa Paitapainoon. (hörps) Kaikki ovat.
@@ -1597,6 +1624,7 @@ HENKILÖ asukas-3
 # LUONNOS (hitsausnaamari: ei hätää; laskee askelia)
 NIMI: Naamari
 KUVA: asukas-3
+RAJAUS: 8 0 84 72
 KATSO: Hitsausnaamari alhaalla, nahkaesiliina, kädessä hitsauspuikko. Naamari ei nouse puhuessakaan.
 POISTUU: piha-3
 TERVEHDYS: Ei hätää. Olet pihalla. Pihalta on ovelle kolmekymmentäkaksi askelta. Ei hätää.

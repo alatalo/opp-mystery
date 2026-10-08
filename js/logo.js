@@ -11,13 +11,14 @@
   var W = 1024;
   var mood = { dark: false, low: false, seed: '1' };
   var lastEffect = 0, timer = null, secretTaps = 0, secretDone = false, reduced = false, quiet = false;
+  var slow = 1, testing = false, slowTimer = null;   // galaksi.html: effects are held longer and also run on narrow logos
   var mq = window.matchMedia ? window.matchMedia('(prefers-reduced-motion: reduce)') : null;
   reduced = !!(mq && mq.matches);
 
   function css(name) { return (getComputedStyle(document.documentElement).getPropertyValue(name) || '').replace(/^\s+|\s+$/g, ''); }
   function inverted() { return /invert/.test(css('--logo-filter')); }
   function hash(str) { var h = 0, i; for (i = 0; i < str.length; i++) { h = (h * 31 + str.charCodeAt(i)) | 0; } return Math.abs(h); }
-  function small() { return wrap && wrap.clientWidth < 360; }
+  function small() { return !testing && wrap && wrap.clientWidth < 360; }
 
   // an overlay that hides glyph `at` (background colour) and optionally shows a slice of glyph `g` in its place
   function overlay(at, g, opts) {
@@ -45,7 +46,7 @@
     (function next() {
       if (i >= list.length) { return; }
       try { list[i++](); } catch (e) { /* plain logo */ }
-      setTimeout(next, ms);
+      setTimeout(next, ms * slow);
     })();
   }
 
@@ -75,7 +76,7 @@
     var img = wrap.querySelector('img'); if (!img) { return; }
     var prev = img.style.filter, prevW = img.style.webkitFilter, v = inverted() ? 'none' : 'invert(1)';
     img.style.filter = v; img.style.webkitFilter = v;
-    setTimeout(function () { img.style.filter = prev; img.style.webkitFilter = prevW; }, 90);
+    setTimeout(function () { img.style.filter = prev; img.style.webkitFilter = prevW; }, 90 * slow);
   };
   Logo.react = function () { // a moment that matters: a one-off two-frame blink
     if (reduced || !ready) { return; }
@@ -84,10 +85,14 @@
     var o = null;
     steps([function () { o = overlay(0, 0, { bar: true }); }, function () { gone([o]); }], 120);
   };
+  // galaksi.html: run one effect on the live preview logo. Returns false (and does nothing) under reduced motion.
   Logo.test = function (what) {
-    ready = true;
+    if (reduced) { return false; }
+    ready = true; slow = 2.5; testing = true;
+    clearTimeout(slowTimer); slowTimer = setTimeout(function () { slow = 1; testing = false; }, 4500);
     if (what === 'blink') { Logo.blink(); } else if (what === 'tube') { Logo.tube(1 + Math.floor(Math.random() * 13)); } else if (what === 'tick') { Logo.tick(); }
     else if (what === 'swap') { Logo.swap(); } else if (what === 'flash') { Logo.flash(); } else if (what === 'react') { lastEffect = 0; Logo.react(); }
+    return true;
   };
   Logo.setMood = function (m) { var k; for (k in m) { mood[k] = m[k]; } };
 
@@ -126,7 +131,7 @@
 
   function init() {
     try {
-      wrap = document.querySelector('.logowrap');
+      wrap = document.querySelector('#logopreview .logowrap') || document.querySelector('.logowrap');
       if (!wrap) { return; }
       ready = !reduced;
       wireX();

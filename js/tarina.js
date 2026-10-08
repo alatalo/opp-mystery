@@ -1,23 +1,58 @@
 /* Parser for tarina.txt (format: see the comments at the top of that file and docs/OHJE-TEKSTIT.md).
    Tolerant by design: an error is recorded with its line number and the rest of the story still works.
-   ES5 on purpose (old Safari). */
+   Keywords are case-insensitive. ES5 on purpose (old Safari). */
 (function () {
   'use strict';
-  var G = window.Paita.galaksi;
+  var P = window.Paita;
+  var G = P.galaksi;
   var norm = G.norm;
 
-  var KEYWORDS = ['KUN', 'JOS', 'MUUTEN', 'OTSIKKO', 'SÄÄ', 'NÄYTÄ', 'KYSY', 'KIERTOTIE', 'VÄLILLÄ', 'TOISTUU', 'JATKUU',
-    'NAYTA', 'VALILLA', 'SAA'];
-  var SHOW = { hahmo: 1, kortti: 1, kyltti: 1, kartta: 1, kissa: 1 };
+  var KEYWORDS = ['KUN', 'JOS', 'MUUTEN', 'OTSIKKO', 'SÄÄ', 'NÄYTÄ', 'KYSY', 'KIERTOTIE', 'VÄLILLÄ', 'TOISTUU', 'JATKUU', 'PERILLE',
+    'PUHE', 'HEITTO', 'JÄRKI', 'LOPPU', 'OTA', 'HAHMO', 'KUVA', 'HENKILÖ', 'KOHTA', 'PAIKKA', 'AIHE', 'EHTO', 'NIMI', 'KATSO', 'MENE', 'VERBI',
+    'PYSTY', 'RAJA', 'TERVEHDYS', 'POISTUU', 'TIEDOSTO', 'KOLMAS', 'PIILOSSA', 'TOIMI', 'TAUSTA', 'PIHA'];
+  var SHOW = { hahmo: 1, kortti: 1, kyltti: 1, kartta: 1, kissa: 1, avaus: 1, kaytava: 1, leima: 1, omistaja: 1, ovi: 1 };
   var ASK = { nimi: 1, klaani: 1, yhteys: 1, viesti: 1, vahvista: 1 };
   var FACTS = { puhelin: 'phone', sahkoposti: 'email', katu: 'street', postinumero: 'postal', avaus: 'openTime', sulkeminen: 'closeTime',
-    tilanne: 'status', nimi: 'name', kuu: 'kuu', kellonaika: 'kello', viikonpaiva: 'viikonpaiva', aurinko: 'aurinko', valo: 'valo' };
+    tilanne: 'status', nimi: 'name', kuu: 'kuu', kellonaika: 'kello', viikonpaiva: 'viikonpaiva', aurinko: 'aurinko', valo: 'valo',
+    jarki: 'jarki', salasana: 'salasana', instagram: 'instagram', loput: 'loput' };
   var ACTIONS = { puhelin: 'tel', sahko: 'mail', sahkoposti: 'mail', reitti: 'route' };
 
   function sceneId(s) { return norm(s).replace(/[^a-z0-9~:_-]+/g, '-').replace(/^-+|-+$/g, ''); }
+  function exitId(url) {
+    var m = /^https?:\/\/(?:www\.)?([^\/?#]+)(?:\/([^\/?#]*))?/i.exec(url) || [];
+    var host = m[1] || 'ulos', seg = /instagram\.com$/i.test(host) ? (m[2] || '') : '';
+    return 'ulos-' + sceneId(host + (seg ? '-' + seg : ''));
+  }
+  function lev(a, b) {
+    var i, j, d = [], c;
+    for (i = 0; i <= a.length; i++) { d[i] = [i]; }
+    for (j = 1; j <= b.length; j++) { d[0][j] = j; }
+    for (i = 1; i <= a.length; i++) {
+      for (j = 1; j <= b.length; j++) {
+        c = a.charAt(i - 1) === b.charAt(j - 1) ? 0 : 1;
+        d[i][j] = Math.min(d[i - 1][j] + 1, d[i][j - 1] + 1, d[i - 1][j - 1] + c);
+      }
+    }
+    return d[a.length][b.length];
+  }
+  function nearKeyword(tok) {
+    var up = tok.toUpperCase(), i, lim = up.length < 6 ? 1 : 2, best = null;
+    if (up.length < 3) { return null; }
+    for (i = 0; i < KEYWORDS.length; i++) {
+      if (KEYWORDS[i] === up) { return null; }
+      if (Math.abs(KEYWORDS[i].length - up.length) <= lim && lev(KEYWORDS[i], up) <= lim) { best = KEYWORDS[i]; }
+    }
+    return best;
+  }
+  function numbers(str, n) {
+    var m = String(str).replace(/,/g, '.').match(/-?\d+(?:\.\d+)?/g) || [], out = [], i;
+    if (m.length < n) { return null; }
+    for (i = 0; i < n; i++) { out.push(parseFloat(m[i])); }
+    return out;
+  }
 
   function parseStory(text) {
-    var story = { scenes: {}, order: [], detours: [], texts: {}, errors: [], warnings: [] };
+    var story = { scenes: {}, order: [], detours: [], texts: {}, errors: [], warnings: [], endings: [], endingNames: {}, passwords: [], pictures: {}, people: {}, exits: {}, bootLines: [] };
     var lines = String(text).replace(/^﻿/, '').replace(/\r\n?/g, '\n').split('\n');
     var sec = null;           // current scene or detour
     var secKind = null;
@@ -29,6 +64,7 @@
     var collect = null;       // show item collecting lines
     var detourHeader = false;
     var gc = 0;
+    var cur = null;           // current picture spot / person topic being filled
 
     function err(n, msg) { story.errors.push({ line: n, msg: msg }); }
     function warn(n, msg) { story.warnings.push({ line: n, msg: msg }); }
@@ -67,11 +103,19 @@
     }
     function parseTarget(t, n) {
       t = String(t).replace(/^\s+|\s+$/g, '');
-      if (/^https?:\/\//i.test(t)) { return { kind: 'url', url: t }; }
       var k = norm(t);
+      if (k === 'instagram' || k === 'kahvila') {
+        t = k === 'instagram' ? (P.config.instagram || '') : (P.config.cafeUrl || '');
+        if (!t) { return { kind: 'scene', id: START_ID, n: n }; }
+      }
+      if (/^https?:\/\//i.test(t)) { var id = exitId(t); story.exits[id] = t; return { kind: 'url', url: t, exit: id }; }
       if (ACTIONS[k]) { return { kind: 'action', action: ACTIONS[k], word: k }; }
+      if (k === 'ulos') { return { kind: 'exitgo' }; }
+      if (k === 'takaisin') { return { kind: 'back' }; }
+      if (k === 'jatka') { return { kind: 'next' }; }
       return { kind: 'scene', id: sceneId(t), n: n };
     }
+    var START_ID = 'alku';
     function needsPhone(nodes, target) {
       var i;
       if (target && target.kind === 'action' && target.action === 'tel') { return true; }
@@ -117,7 +161,7 @@
       gc = 0;
       sec = { id: id, line: n, titles: [], beats: [], weather: false, texts: null };
       block = { lead: { kind: 'plain' }, items: [], line: n };
-      pending = null; last = null; collect = null;
+      pending = null; last = null; collect = null; cur = null;
     }
     function endSection(n) {
       if (!sec) { return; }
@@ -145,10 +189,9 @@
     function addItem(item, n) {
       if (!sec) { err(n, 'Teksti ennen ensimmäistä kohtausta (== nimi): ohitetaan'); pending = null; return; }
       var lead = pending; pending = null;
-      if (lead && lead.cond && lead.cond.error) { /* condition error already recorded; keep item with a never-true condition */ }
       item.needsPhone = !!item.needsPhone;
       assemble(block.items, item.type, item, lead, n);
-      if (item.type === 'p' || item.type === 'choice') { last = item; }
+      if (item.type === 'p' || item.type === 'choice' || item.type === 'say') { last = item; }
     }
 
     function flush(n) {
@@ -157,9 +200,33 @@
       var ln = paraLine;
       para = [];
       if (!sec) { err(ln, 'Teksti ennen ensimmäistä kohtausta (== nimi): ohitetaan'); return; }
-      if (secKind === 'texts') { return; }
+      if (secKind === 'texts' || secKind === 'ends' || secKind === 'pw' || secKind === 'pic' || secKind === 'person') { return; }
       var nodes = parseNodes(txt, ln);
-      addItem({ type: 'p', nodes: nodes, aside: null, line: ln, needsPhone: needsPhone(nodes, null) }, ln);
+      addItem({ type: para.say ? 'say' : 'p', nodes: nodes, aside: null, line: ln, needsPhone: needsPhone(nodes, null) }, ln);
+    }
+    var paraSay = false;
+
+    function flushText(n) {
+      if (!para.length) { return; }
+      var txt = para.join(' ').replace(/\s+/g, ' ').replace(/^ | $/g, '');
+      var ln = paraLine, say = paraSay;
+      para = []; paraSay = false;
+      if (!sec) { err(ln, 'Teksti ennen ensimmäistä kohtausta (== nimi): ohitetaan'); return; }
+      var nodes = parseNodes(txt, ln);
+      addItem({ type: say ? 'say' : 'p', nodes: nodes, aside: null, line: ln, needsPhone: needsPhone(nodes, null) }, ln);
+    }
+    flush = function (n) {
+      if (secKind === 'texts' || secKind === 'ends' || secKind === 'pw' || secKind === 'pic' || secKind === 'person') { para = []; return; }
+      flushText(n);
+    };
+
+    // a condition line written in a case-insensitive way; returns the parsed condition or null if the line is prose
+    function softCond(word, rest, n, exact) {
+      var c = G.parseCond(rest);
+      if (!c.error) { return c; }
+      if (exact) { return cond(rest, n); }
+      if (!/[.!?,]/.test(rest) && rest.length <= 50) { warn(n, 'Rivi alkaa sanalla "' + word + '" mutta ehtoa ei tunnistettu (' + c.error + '): näytetään tekstinä'); }
+      return null;
     }
 
     var i, raw, line, m, n;
@@ -169,19 +236,32 @@
       line = raw.replace(/^\s+|\s+$/g, '');
       try {
         if (line.charAt(0) === '#') { continue; }
-        if (line === '') { if (secKind !== 'texts') { flush(n); } collect = null; continue; }
+        if (line === '') { if (secKind !== 'texts') { flush(n); } collect = null; cur = null; continue; }
+        if (line.indexOf('�') >= 0) { warn(n, 'Rivillä on rikkinäinen merkki (�): tallenna tiedosto UTF-8-muodossa'); }
 
         if ((m = /^==\s*(.+?)\s*=*$/.exec(line))) {
           var id = sceneId(m[1]);
           if (id === 'tekstit') { startSection('texts', id, n); sec.id = 'tekstit'; continue; }
+          if (id === 'loput') { startSection('ends', id, n); continue; }
+          if (id === 'salasanat') { startSection('pw', id, n); continue; }
           startSection('scene', id, n);
           if (!id) { err(n, 'Kohtauksen nimi puuttuu'); }
           continue;
         }
-        if ((m = /^(KIERTOTIE|KIERTOTEI)\s+(.+)$/.exec(line))) {
+        if ((m = /^(KIERTOTIE|KIERTOTEI)\s+(.+)$/i.exec(line))) {
           startSection('detour', sceneId(m[2]), n);
-          sec.from = '*'; sec.to = '*'; sec.cond = null; sec.condText = ''; sec.repeat = false;
+          sec.from = '*'; sec.to = '*'; sec.cond = null; sec.condText = ''; sec.repeat = false; sec.goal = null;
           detourHeader = true;
+          continue;
+        }
+        if ((m = /^KUVA\s+(\S+)\s*$/i.exec(line))) {
+          startSection('pic', sceneId(m[1]), n);
+          sec.pic = story.pictures[sec.id] = story.pictures[sec.id] || { id: sec.id, spots: [], places: {} };
+          continue;
+        }
+        if ((m = /^HENKIL[ÖO]\s+(\S+)\s*$/i.exec(line))) {
+          startSection('person', sceneId(m[1]), n);
+          sec.person = story.people[sec.id] = { id: sec.id, name: '', img: sec.id, look: '', greeting: '', topics: [], leave: 'alku', uses: {} };
           continue;
         }
         if (!sec) { err(n, 'Teksti ennen ensimmäistä kohtausta (== nimi): ohitetaan'); continue; }
@@ -191,14 +271,69 @@
           else { err(n, 'Tekstirivi ilman kaksoispistettä: ' + line); }
           continue;
         }
+        if (secKind === 'ends') {
+          if ((m = /^([^:]+?)\s*:\s*(.+)$/.exec(line))) { story.endings.push(sceneId(m[1])); story.endingNames[sceneId(m[1])] = m[2]; }
+          else { err(n, 'Loppu: kirjoita "tunnus: Nimi"'); }
+          continue;
+        }
+        if (secKind === 'pw') { story.passwords.push(line); continue; }
 
-        if (secKind === 'detour' && detourHeader) {
-          if ((m = /^(?:VÄLILLÄ|VALILLA)\s+(.+?)\s*->\s*(.+)$/.exec(line))) { sec.from = m[1] === '*' ? '*' : sceneId(m[1]); sec.to = m[2].replace(/\s+$/, '') === '*' ? '*' : sceneId(m[2]); continue; }
-          if (line === 'TOISTUU') { sec.repeat = true; continue; }
-          if ((m = /^KUN\s+(.+)$/.exec(line))) { sec.condText = m[1]; sec.cond = cond(m[1], n); continue; }
+        if (secKind === 'pic') {
+          var pic = sec.pic;
+          if ((m = /^KOHTA\s+(\S+?)\s*:\s*(.+)$/i.exec(line))) {
+            var r = numbers(m[2], 4);
+            cur = { id: sceneId(m[1]), r: r, rects: {}, name: m[1], look: '', looks: [], third: '', action: '', hidden: false, soft: false, go: null, cond: null };
+            if (!r) { err(n, 'KOHTA tarvitsee neljä lukua: x y leveys korkeus (prosentteja)'); cur.r = [0, 0, 10, 10]; }
+            pic.spots.push(cur); continue;
+          }
+          if ((m = /^PAIKKA\s+(\d+)(\s+PYSTY)?\s*:\s*(.+)$/i.exec(line))) {
+            var pn = numbers(m[3], 3);
+            if (!pn) { err(n, 'PAIKKA tarvitsee kolme lukua: jalkojen x, maan y, korkeus (prosentteja)'); continue; }
+            var pl = pic.places[m[1]] = pic.places[m[1]] || {};
+            pl[m[2] ? 'p' : 'l'] = pn; continue;
+          }
+          if ((m = /^TIEDOSTO\s*:\s*(\S+)$/i.exec(line))) { pic.file = m[1]; continue; }
+          if (!cur) { err(n, 'Rivi kuuluu KOHTA-lohkoon (aloita rivillä KOHTA nimi: x y w h): ' + line); continue; }
+          if ((m = /^NIMI\s*:\s*(.+)$/i.exec(line))) { cur.name = m[1]; continue; }
+          if ((m = /^KATSO\s*:\s*(.+)$/i.exec(line))) { cur.looks.push(m[1]); if (!cur.look) { cur.look = m[1]; } continue; }
+          if ((m = /^KOLMAS\s*:\s*(.+)$/i.exec(line))) { cur.third = m[1]; continue; }
+          if ((m = /^TAUSTA\s*:\s*(.+)$/i.exec(line))) { cur.soft = /^(kyllä|kylla|1|on)$/i.test(m[1].replace(/\s+$/, '')); continue; }
+          if ((m = /^PIILOSSA\s*:\s*(.+)$/i.exec(line))) { cur.hidden = /^(kyllä|kylla|1|on)$/i.test(m[1].replace(/\s+$/, '')); continue; }
+          if ((m = /^TOIMI\s*:\s*(.+)$/i.exec(line))) { cur.action = m[1]; continue; }
+          if ((m = /^MENE\s*:\s*(.+)$/i.exec(line))) { cur.go = parseTarget(m[1], n); continue; }
+          if ((m = /^VERBI\s*:\s*(.+)$/i.exec(line))) { continue; }
+          if ((m = /^EHTO\s*:\s*(.+)$/i.exec(line))) { cur.cond = cond(m[1], n); continue; }
+          if ((m = /^PYSTY\s*:\s*(.+)$/i.exec(line))) { if (/^(ei|-)\s*$/i.test(m[1])) { cur.rects.p = false; continue; } var pr2 = numbers(m[1], 4); if (pr2) { cur.rects.p = pr2; } else { err(n, 'PYSTY tarvitsee neljä lukua (tai sanan ei, jos kohtaa ei ole pystykuvassa)'); } continue; }
+          if ((m = /^RAJA\s*([1-4])\s*:\s*(.+)$/i.exec(line))) { var rr = numbers(m[2], 4); if (rr) { cur.rects['s' + m[1]] = rr; } else { err(n, 'RAJA tarvitsee neljä lukua'); } continue; }
+          if ((m = /^K[ÄA]YT[ÄA]\s+(\S+)\s*:\s*(.+)$/i.exec(line))) { continue; }
+          err(n, 'Tuntematon rivi kuva-osiossa: ' + line);
+          continue;
         }
 
-        if ((m = /^(?:-{3,}|JATKUU)\s*(?:(KUN|JOS)\s+(.+?)|(MUUTEN))?\s*$/.exec(line))) {
+        if (secKind === 'person') {
+          var ps = sec.person;
+          if ((m = /^NIMI\s*:\s*(.+)$/i.exec(line))) { ps.name = m[1]; cur = null; continue; }
+          if ((m = /^KUVA\s*:\s*(\S+)$/i.exec(line))) { ps.img = m[1]; cur = null; continue; }
+          if ((m = /^KATSO\s*:\s*(.+)$/i.exec(line))) { ps.look = m[1]; ps.looks = (ps.looks || []).concat([m[1]]); cur = null; continue; }
+          if ((m = /^TERVEHDYS\s*:\s*(.+)$/i.exec(line))) { ps.greeting = m[1]; cur = null; continue; }
+          if ((m = /^POISTUU\s*:\s*(\S+)$/i.exec(line))) { ps.leave = sceneId(m[1]); cur = null; continue; }
+          if ((m = /^K[ÄA]YT[ÄA]\s+(\S+)\s*:\s*(.+)$/i.exec(line))) { cur = null; continue; }
+          if ((m = /^AIHE\s+(\S+)\s*:\s*(.+)$/i.exec(line))) { cur = { id: sceneId(m[1]), label: m[2], text: '', cond: null, sanity: 0 }; ps.topics.push(cur); continue; }
+          if (cur && (m = /^EHTO\s*:\s*(.+)$/i.exec(line))) { cur.cond = cond(m[1], n); continue; }
+          if (cur && (m = /^J[ÄA]RKI\s*:\s*([+-]?\s*\d+)$/i.exec(line))) { cur.sanity = parseInt(m[1].replace(/\s+/g, ''), 10); continue; }
+          if (cur) { cur.text += (cur.text ? ' ' : '') + line; continue; }
+          err(n, 'Tuntematon rivi henkilö-osiossa: ' + line);
+          continue;
+        }
+
+        if (secKind === 'detour' && detourHeader) {
+          if ((m = /^(?:VÄLILLÄ|VALILLA)\s+(.+?)\s*->\s*(.+)$/i.exec(line))) { sec.from = m[1] === '*' ? '*' : sceneId(m[1]); sec.to = m[2].replace(/\s+$/, '') === '*' ? '*' : sceneId(m[2]); continue; }
+          if (/^TOISTUU\s*$/i.test(line)) { sec.repeat = true; continue; }
+          if ((m = /^PERILLE\s+(\S+)\s*$/i.exec(line))) { sec.goal = sceneId(m[1]); continue; }
+          if ((m = /^KUN\s+(.+)$/i.exec(line))) { sec.condText = m[1]; sec.cond = cond(m[1], n); continue; }
+        }
+
+        if ((m = /^(?:-{3,}|JATKUU)\s*(?:(KUN|JOS)\s+(.+?)|(MUUTEN))?\s*$/i.exec(line))) {
           flush(n);
           detourHeader = false;
           commitBlock();
@@ -212,40 +347,65 @@
 
         if (collect) { collect.lines.push(parseNodes(line, n)); continue; }
 
-        if ((m = /^(KUN|JOS)\s+(.+)$/.exec(line))) {
-          flush(n); detourHeader = false;
-          pending = { kind: m[1].toLowerCase(), cond: cond(m[2], n), condText: m[2], line: n };
+        // a backslash at the start of a line makes the rest plain text (use it if a sentence has to start with a reserved character or keyword)
+        if (line.charAt(0) === '\\') {
+          if (!para.length) { paraLine = n; paraSay = false; }
+          para.push(line.slice(1).replace(/^\s+/, ''));
           continue;
         }
-        if (/^MUUTEN\s*$/.test(line)) { flush(n); detourHeader = false; pending = { kind: 'muuten', line: n }; continue; }
 
-        if ((m = /^OTSIKKO\s*:\s*(.*)$/.exec(line))) {
+        if ((m = /^(KUN|JOS)\s+(.+)$/i.exec(line))) {
+          var exact = m[1] === m[1].toUpperCase();
+          var cc = softCond(m[1], m[2], n, exact);
+          if (cc) {
+            flush(n); detourHeader = false;
+            pending = { kind: m[1].toLowerCase(), cond: cc, condText: m[2], line: n };
+            continue;
+          }
+        } else if (/^MUUTEN\s*$/i.test(line)) { flush(n); detourHeader = false; pending = { kind: 'muuten', line: n }; continue; }
+
+        if ((m = /^OTSIKKO\s*:\s*(.*)$/i.exec(line))) {
           flush(n);
           var tl = pending; pending = null;
           if (secKind === 'detour' && detourHeader) { tl = null; }
           assemble(sec.titles, 'title', { nodes: parseNodes(m[1], n) }, tl, n);
           continue;
         }
-        if ((m = /^(?:SÄÄ|SAA)\s*:\s*(.*)$/.exec(line))) { sec.weather = norm(m[1]) === 'paalla'; continue; }
+        if ((m = /^(?:SÄÄ|SAA)\s*:\s*(.*)$/i.exec(line))) { sec.weather = norm(m[1]) === 'paalla'; continue; }
+        if ((m = /^PIHA\s*:\s*(.*)$/i.exec(line))) { sec.yard = /^(kyllä|kylla|1|on)$/i.test(m[1].replace(/\s+$/, '')); continue; }
 
         detourHeader = false;
 
-        if ((m = /^(?:NÄYTÄ|NAYTA)\s+(\S+)\s*$/.exec(line))) {
+        if ((m = /^PUHE\s*:\s*(.+)$/i.exec(line))) {
           flush(n);
+          paraLine = n; paraSay = true; para.push(m[1]);
+          continue;
+        }
+        if ((m = /^(?:NÄYTÄ|NAYTA)\s+(\S+)\s*$/i.exec(line))) {
           var w = norm(m[1]);
-          if (!SHOW[w]) { err(n, 'Tuntematon NÄYTÄ-kohde: ' + m[1] + ' (sallitut: hahmo, kortti, kyltti, kartta, kissa)'); pending = null; continue; }
-          var it = { type: 'show', what: w, lines: [], line: n };
-          addItem(it, n);
-          if (w === 'kortti' || w === 'kyltti') { collect = it; }
-          continue;
+          if (SHOW[w] || m[0].indexOf('NÄYTÄ') === 0 || m[0].indexOf('NAYTA') === 0) {
+            flush(n);
+            if (!SHOW[w]) { err(n, 'Tuntematon NÄYTÄ-kohde: ' + m[1] + ' (sallitut: hahmo, kortti, kyltti, kartta, kissa, avaus, kaytava, ovi, omistaja, leima)'); pending = null; continue; }
+            var it = { type: 'show', what: w, lines: [], line: n };
+            addItem(it, n);
+            if (w === 'kortti' || w === 'kyltti') { collect = it; }
+            continue;
+          }
         }
-        if ((m = /^KYSY\s+(\S+)\s*$/.exec(line))) {
-          flush(n);
+        if ((m = /^KYSY\s+(\S+)\s*$/i.exec(line))) {
           var q = norm(m[1]);
-          if (!ASK[q]) { err(n, 'Tuntematon KYSY-kohde: ' + m[1] + ' (sallitut: nimi, klaani, yhteys, viesti, vahvista)'); pending = null; continue; }
-          addItem({ type: 'ask', kind: q, line: n }, n);
-          continue;
+          if (ASK[q] || m[0].indexOf('KYSY') === 0) {
+            flush(n);
+            if (!ASK[q]) { err(n, 'Tuntematon KYSY-kohde: ' + m[1] + ' (sallitut: nimi, klaani, yhteys, viesti, vahvista)'); pending = null; continue; }
+            addItem({ type: 'ask', kind: q, line: n }, n);
+            continue;
+          }
         }
+        if ((m = /^HEITTO\s+(\S+)\s*$/i.exec(line))) { flush(n); addItem({ type: 'roll', key: norm(m[1]), line: n }, n); continue; }
+        if ((m = /^J[ÄA]RKI\s+([+-])\s*(\d{1,2})\s*$/i.exec(line))) { flush(n); addItem({ type: 'sanity', d: (m[1] === '-' ? -1 : 1) * parseInt(m[2], 10), line: n }, n); continue; }
+        if ((m = /^LOPPU\s+(\S+)\s*$/i.exec(line))) { flush(n); addItem({ type: 'ending', id: sceneId(m[1]), line: n }, n); continue; }
+        if ((m = /^OTA\s+(\S+)\s*$/i.exec(line))) { flush(n); addItem({ type: 'take', item: norm(m[1]), line: n }, n); continue; }
+        if ((m = /^HAHMO\s+(\S+)\s+PAIKKA\s+(\d+)\s*$/i.exec(line))) { flush(n); addItem({ type: 'cast', who: sceneId(m[1]), place: m[2], line: n }, n); continue; }
         if (line.charAt(0) === '>') {
           flush(n);
           var body = line.replace(/^>\s*/, '');
@@ -264,11 +424,16 @@
           continue;
         }
 
-        // ordinary text
-        if ((m = /^([A-ZÄÖÅ]{4,})(?:\s|:|$)/.exec(line)) && KEYWORDS.indexOf(m[1]) < 0 && /[a-zäöå]/.test(line) && line.indexOf('{') < 0) {
-          warn(n, 'Rivi alkaa isolla sanalla "' + m[1] + '", joka ei ole avainsana: käsitelty tavallisena tekstinä');
+        // ordinary text. Warn about lines that look like a mistyped keyword.
+        if ((m = /^([A-Za-zÄÖÅäöå]+)(\s|:|$)/.exec(line)) && !para.length && line.indexOf(' | ') < 0) {
+          var tok = m[1], near = nearKeyword(tok);
+          if (near && ((tok === tok.toUpperCase() && tok.length >= 3) || m[2] === ':')) {
+            warn(n, 'Rivi alkaa sanalla "' + tok + '". Tarkoititko avainsanaa ' + near + '? Rivi näytetään tavallisena tekstinä.');
+          } else if (!near && /^[A-ZÄÖÅ]{4,}$/.test(tok) && KEYWORDS.indexOf(tok) < 0 && /[a-zäöå]/.test(line) && line.indexOf('{') < 0) {
+            warn(n, 'Rivi alkaa isolla sanalla "' + tok + '", joka ei ole avainsana: käsitelty tavallisena tekstinä');
+          }
         }
-        if (!para.length) { paraLine = n; }
+        if (!para.length) { paraLine = n; paraSay = false; }
         para.push(line);
       } catch (e) {
         err(n, 'Rivin lukeminen epäonnistui: ' + (e && e.message));
@@ -284,7 +449,7 @@
     var ids = story.scenes;
     function checkTarget(t, n) {
       if (t.kind !== 'scene') { return; }
-      if (!ids[t.id] && t.id !== 'kierto' ) { story.errors.push({ line: n, msg: 'Kohdetta "' + t.id + '" ei löydy: valinta vie alkuun' }); }
+      if (!ids[t.id] && t.id !== 'kierto') { story.errors.push({ line: n, msg: 'Kohdetta "' + t.id + '" ei löydy: valinta vie alkuun' }); }
     }
     function walkNodes(nodes, n) {
       var k;
@@ -299,7 +464,9 @@
             for (g = 0; g < items[c].alts.length; g++) {
               it = items[c].alts[g].data;
               if (it.type === 'choice') { checkTarget(it.target, it.line); walkNodes(it.nodes, it.line); }
-              if (it.type === 'p') { walkNodes(it.nodes, it.line); }
+              if (it.type === 'p' || it.type === 'say') { walkNodes(it.nodes, it.line); }
+              if (it.type === 'ending' && story.endings.indexOf(it.id) < 0) { story.errors.push({ line: it.line, msg: 'Loppua "' + it.id + '" ei ole määritelty osiossa == loput' }); }
+              if (it.type === 'cast' && !story.people[it.who]) { story.errors.push({ line: it.line, msg: 'Henkilöä "' + it.who + '" ei ole määritelty (HENKILÖ ' + it.who + ')' }); }
             }
           }
         }
@@ -315,8 +482,14 @@
       var dt = story.detours[d];
       if (dt.from !== '*' && !ids[dt.from]) { story.errors.push({ line: dt.line, msg: 'Kiertotie ' + dt.name + ': lähtökohtausta "' + dt.from + '" ei löydy' }); }
       if (dt.to !== '*' && !ids[dt.to]) { story.errors.push({ line: dt.line, msg: 'Kiertotie ' + dt.name + ': kohdekohtausta "' + dt.to + '" ei löydy' }); }
+      if (dt.goal && !ids[dt.goal]) { story.errors.push({ line: dt.line, msg: 'Kiertotie ' + dt.name + ': PERILLE-kohtausta "' + dt.goal + '" ei löydy' }); }
       if (!dt.beats.length) { story.errors.push({ line: dt.line, msg: 'Kiertotie ' + dt.name + ' on tyhjä' }); }
       walkBeats(dt.beats);
+    }
+    for (k in story.people) {
+      var pe = story.people[k];
+      if (!ids[pe.leave]) { story.errors.push({ line: 0, msg: 'Henkilö ' + k + ': POISTUU-kohtausta "' + pe.leave + '" ei löydy' }); }
+      if (!pe.topics.length) { story.warnings.push({ line: 0, msg: 'Henkilöllä ' + k + ' ei ole aiheita (AIHE)' }); }
     }
     if (!ids.alku) { story.errors.push({ line: 0, msg: 'Kohtaus "alku" puuttuu: sivu käyttää varakohtausta' }); }
   }
@@ -343,7 +516,7 @@
   // Resolve a scene or detour to {title, beats:[[item,...]]} for the given context.
   function resolve(sec, ctx, forced) {
     var out = { title: null, beats: [], weather: !!sec.weather };
-    var t, b, i, ba, g, ia, items;
+    var t, b, i, ba, ia, items;
     for (t = 0; t < sec.titles.length; t++) {
       ba = pick(sec.titles[t], ctx, forced);
       if (ba) { out.title = ba.data.nodes; }
@@ -361,5 +534,5 @@
     return out;
   }
 
-  window.Paita.story = { parse: parseStory, resolve: resolve, pick: pick, pickIndex: pickIndex, sceneId: sceneId };
+  window.Paita.story = { parse: parseStory, resolve: resolve, pick: pick, pickIndex: pickIndex, sceneId: sceneId, exitId: exitId };
 })();

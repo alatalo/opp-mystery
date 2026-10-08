@@ -96,17 +96,23 @@
   var OV_KAUSI = { kevat: 'kevät', kesa: 'kesä', syksy: 'syksy', talvi: 'talvi' };
   var OV_SUN = { yoton: 'yötön', kaamos: 'kaamos', normaali: 'normaali' };
 
-  // opts: { params: {name: value} overrides (strings), mem: {seen, flags, returning, seed, uusi}, scene: id }
+  var MOON_AGE = { 'uusi': 0.6, 'kasvava': 7.4, 'täysi': 14.77, 'vähenevä': 22.1 };
+  function toMin(hhmm) { var p = String(hhmm).split(':'); return parseInt(p[0], 10) * 60 + parseInt(p[1], 10); }
+  function keys(o) { var k, n = 0; for (k in o) { if (o.hasOwnProperty(k) && o[k] !== '' && o[k] !== null && o[k] !== undefined) { n++; } } return n; }
+
+  // opts: { params: {name: value} overrides (strings), mem: {seen, flags, returning, seed, uusi, stage, sanity, inv, asked}, scene: id, tool: bool }
   function context(opts) {
     opts = opts || {};
     var pr = opts.params || {};
     var mem = opts.mem || {};
     var now = pr.now || P.helsinkiNow();
     var c = { now: now };
-    var age = moonAge(now.utc);
+    c.overridesActive = keys(pr) + (opts.tool ? 0 : keys(P.overrides ? P.overrides() : {})) > 0;
+    var kuuOv = OV_KUU[norm(pr.kuu || '')];
+    var age = kuuOv ? MOON_AGE[kuuOv] : moonAge(now.utc);
     c.moonAge = age;
-    c.moon = OV_KUU[norm(pr.kuu || '')] || moonPhase(age);
-    c.moonOverride = !!OV_KUU[norm(pr.kuu || '')];
+    c.moon = kuuOv || moonPhase(age);
+    c.moonOverride = !!kuuOv;
     c.moonIllum = (1 - Math.cos(2 * Math.PI * age / SYN)) / 2;
     var day = sunDay(now.y, now.mo, now.d);
     c.sunDay = day;
@@ -127,10 +133,14 @@
     c.weekday = WEEKDAYS[wd];
     c.month = now.mo;
     c.season = OV_KAUSI[norm(pr.kausi || '')] || seasonOf(now.mo);
-    c.open = pr.auki === '1' ? true : pr.auki === '0' ? false : P.isOpen(now);
+    var hrs = (P.config && P.config.hours) || { days: [2, 3, 4, 5], open: '12:00', close: '18:00' };
+    var openMin = toMin(hrs.open), closeMin = toMin(hrs.close);
+    c.openMin = openMin; c.closeMin = closeMin;
+    c.open = pr.auki === '1' ? true : pr.auki === '0' ? false : (hrs.days.indexOf(wd) !== -1 && now.min >= openMin && now.min < closeMin);
     c.returning = pr.palaava === '1' ? true : pr.palaava === '0' ? false : !!mem.returning;
     c.seed = pr.siemen ? pr.siemen : (mem.seed || '1');
-    c.chance = pr.arpa === 'kaikki' ? 'kaikki' : pr.arpa === 'ei' ? 'ei' : null;
+    var ar = pr.arpa || '';
+    c.chance = ar === 'kaikki' ? 'kaikki' : ar === 'ei' ? 'ei' : ar === 'oikea' ? null : ((c.overridesActive && !pr.siemen) ? 'ei' : null);
     c.seen = {};
     var k;
     for (k in (mem.seen || {})) { if (mem.seen[k]) { c.seen[k] = mem.seen[k]; } }
@@ -140,7 +150,45 @@
     c.paletti = pr.paletti ? norm(pr.paletti) : '';
     c.scene = opts.scene || '';
     c.mem = mem;
+    // the figure at work: shift follows the Helsinki clock (or the override)
+    var shift = '';
+    var mins = now.min;
+    if (wd === 1) { shift = 'maanantai'; }
+    else if (c.open || (hrs.days.indexOf(wd) !== -1 && mins >= openMin - 60 && mins < closeMin + 30)) {
+      if (mins >= closeMin - 15 && mins < closeMin) { shift = 'sulku'; }
+      else if (mins >= openMin + 60 && mins < openMin + 120) { shift = 'lounas'; }
+      else if (mins >= openMin + 180 && mins < openMin + 240) { shift = 'kahvi'; }
+    }
+    if (!shift && (now.h >= 22 || now.h < 5)) { shift = 'yo'; }
+    var vo = norm(pr.vuoro || '');
+    c.shift = vo === 'kahvi' || vo === 'lounas' || vo === 'sulku' || vo === 'maanantai' || vo === 'yo' ? vo : (vo === 'ei' ? '' : shift);
+    // spooky season
+    var kv = norm(pr.kauhu || '');
+    var spoopy = now.mo === 10, hall = now.mo === 10 && now.d >= 28, p13 = (wd === 5 && now.d === 13);
+    if (kv === 'spoopy') { spoopy = true; hall = false; p13 = false; }
+    else if (kv === 'halloween') { spoopy = true; hall = true; p13 = false; }
+    else if (kv === 'pe13' || kv === 'perjantai13') { spoopy = false; hall = false; p13 = true; }
+    else if (kv === 'ei') { spoopy = false; hall = false; p13 = false; }
+    c.spoopy = spoopy; c.halloween = hall; c.fri13 = p13;
+    // the figure's distance, sanity, inventory, conversation
+    var st = parseInt(pr.hahmo, 10);
+    c.stage = st >= 1 && st <= 4 ? st : Math.max(1, Math.min(4, mem.stage || 1));
+    c.sanity = typeof mem.sanity === 'number' ? mem.sanity : startSanity(c.seed, pr.jarki);
+    c.inv = mem.inv || {};
+    c.asked = opts.asked || {};
+    c.found = mem.found || {};
+    c.dice = function (name) { return 1 + Math.floor(roll(c.seed, 'd20.' + c.scene + '.' + name) / 5); };
     return c;
+  }
+  function startSanity(seed, ov) {
+    var o = parseInt(ov, 10);
+    if (o >= 1 && o <= 99) { return o; }
+    return 58 + Math.floor(hash(String(seed) + '|jarki') * 33);
+  }
+  // the password of this visitor: chosen by the seed and the moon from the list in tarina.txt
+  function passwordFor(c, list) {
+    if (!list || !list.length) { return ''; }
+    return list[Math.floor(hash(String(c.seed) + '|salasana|' + c.moon) * list.length) % list.length];
   }
 
   // Dates for the named days (Helsinki calendar)
@@ -180,7 +228,22 @@
     'uusi kavija': function (c) { return !c.returning; },
     'nahty': function (c) { return !!c.seen[norm(c.scene)]; },
     'lahettanyt': function (c) { return c.sent; },
-    'puhelin esilla': function (c) { return c.phone; }
+    'puhelin esilla': function (c) { return c.phone; },
+    'aina': function () { return true; },
+    'seuraa': function (c) { return (c.yard || 0) > 0; },
+    'yksin': function (c) { return !c.yard; },
+    'lounas': function (c) { return c.shift === 'lounas'; },
+    'kahvitauko': function (c) { return c.shift === 'kahvi'; },
+    'sulkemishetki': function (c) { return c.shift === 'sulku'; },
+    'yovuoro': function (c) { return c.shift === 'yo'; },
+    'maanantaivuoro': function (c) { return c.shift === 'maanantai'; },
+    'spoopy': function (c) { return c.spoopy; },
+    'halloween': function (c) { return c.halloween; },
+    'perjantai 13': function (c) { return c.fri13; },
+    'mukana lauta': function (c) { return !!c.inv.lauta; },
+    'mukana lyijykyna': function (c) { return !!c.inv.kyna; },
+    'kantaa lauta': function (c) { return !!c.inv.lauta; },
+    'kantaa lyijykyna': function (c) { return !!c.inv.kyna; }
   };
   var i;
   for (i = 0; i < 7; i++) { (function (idx) { SIMPLE[norm(WEEKDAYS[idx])] = function (c) { return c.dow === idx; }; })(i); }
@@ -195,16 +258,24 @@
     if (SIMPLE[t]) { return { neg: neg, name: t }; }
     if ((m = /^arpa (\d{1,3}(?:[.,]\d+)?) ?%?$/.exec(t))) { return { neg: neg, name: 'arpa', arg: parseFloat(m[1].replace(',', '.')) }; }
     if ((m = /^nahty (.+)$/.exec(t))) { return { neg: neg, name: 'nahty x', arg: m[1] }; }
+    if ((m = /^kysytty (.+)$/.exec(t))) { return { neg: neg, name: 'kysytty x', arg: m[1] }; }
+    if ((m = /^loydetty (.+)$/.exec(t))) { return { neg: neg, name: 'loydetty x', arg: m[1] }; }
+    if ((m = /^hahmo ([1-4])(\+)?$/.exec(t))) { return { neg: neg, name: 'hahmo x', arg: parseInt(m[1], 10), plus: !!m[2] }; }
+    if ((m = /^heitto (\S+) (yli|alle) (\d{1,2})$/.exec(t))) { return { neg: neg, name: 'heitto x', key: m[1], dir: m[2], arg: parseInt(m[3], 10) }; }
+    if ((m = /^jarki (yli|alle) (\d{1,3})$/.exec(t))) { return { neg: neg, name: 'jarki x', dir: m[1], arg: parseInt(m[2], 10) }; }
+    if ((m = /^kello (\d{1,2})(?::(\d{2}))?\s*-\s*(\d{1,2})(?::(\d{2}))?$/.exec(t))) {
+      return { neg: neg, name: 'kello x', from: parseInt(m[1], 10) * 60 + (m[2] ? parseInt(m[2], 10) : 0), to: parseInt(m[3], 10) * 60 + (m[4] ? parseInt(m[4], 10) : 0) };
+    }
     return null;
   }
 
   // "yö JA täysikuu TAI talvi" -> OR of ANDs. Returns {branches, error?}
   function parseCond(text) {
     var out = { branches: [], error: null, text: text };
-    var ors = String(text).split(/\s+TAI\s+/);
+    var ors = String(text).split(/\s+TAI\s+/i);
     var o, a, ands, atoms, at;
     for (o = 0; o < ors.length; o++) {
-      ands = ors[o].split(/\s+JA\s+|\s*,\s*/);
+      ands = ors[o].split(/\s+JA\s+|\s*,\s*/i);
       atoms = [];
       for (a = 0; a < ands.length; a++) {
         if (!/\S/.test(ands[a])) { continue; }
@@ -224,6 +295,18 @@
       if (c.chance === 'kaikki') { r = true; } else if (c.chance === 'ei') { r = false; } else { r = roll(c.seed, key) < at.arg; }
     } else if (at.name === 'nahty x') {
       r = !!c.seen[at.arg];
+    } else if (at.name === 'kysytty x') {
+      r = !!c.asked[at.arg];
+    } else if (at.name === 'loydetty x') {
+      r = !!c.found[at.arg];
+    } else if (at.name === 'hahmo x') {
+      r = at.plus ? c.stage >= at.arg : c.stage === at.arg;
+    } else if (at.name === 'heitto x') {
+      r = at.dir === 'yli' ? c.dice(at.key) > at.arg : c.dice(at.key) < at.arg;
+    } else if (at.name === 'jarki x') {
+      r = at.dir === 'yli' ? c.sanity > at.arg : c.sanity < at.arg;
+    } else if (at.name === 'kello x') {
+      r = at.from <= at.to ? (c.now.min >= at.from && c.now.min < at.to) : (c.now.min >= at.from || c.now.min < at.to);
     } else {
       r = SIMPLE[at.name](c);
     }
@@ -254,20 +337,27 @@
 
   /* ---------- palette (colour scheme) chosen from the conditions; the CSS lives in css/style.css ---------- */
   var PALETTES = [
-    ['oletus', 'Oletus: sininen, valkoinen, keltainen, syaani. Tavallinen ilta ja yö, ja aina kun ei ole syytä muuhun.'],
-    ['ylivalotus', 'Ylivalotus: valkoinen tausta, tummansininen teksti. Yötön yö (kesän valoisat yöt) tai hyvin korkea aurinko.'],
+    ['oletus', 'Oletus: sininen, valkoinen, keltainen, syaani. Tavallinen pimeä ilta ja yö, ja aina kun ei ole syytä muuhun.'],
+    ['ylivalotus', 'Ylivalotus: valkoinen tausta, tummansininen teksti. Yötön yö tai hyvin korkea aurinko.'],
     ['kuutamo', 'Kuutamo: musta tausta, valkoinen ja vaalea teksti. Täysikuu ja pimeää.'],
-    ['kaamos', 'Kaamos: tumma laivastonsininen, oletusvärit. Talven lyhyet päivät kun on hämärää tai pimeää.'],
-    ['valaistu', 'Valaistu: oletus, mutta keltainen korostuu (linkit, kortti). Liike on auki juuri nyt.'],
-    ['outo', 'Outo: magenta ja vihreä. Harvinainen (noin 3 % vierailuista, arvonta pysyy samana koko vierailun).']
+    ['kaamos', 'Kaamos: tumma laivastonsininen. Talven lyhyet päivät kun on hämärää tai pimeää.'],
+    ['valaistu', 'Valaistu: oletus, mutta keltainen korostuu. Liike on auki ja on pimeää.'],
+    ['outo', 'Outo: magenta ja vihreä. Harvinainen (noin 3 % vierailuista, arvonta pysyy samana koko vierailun).'],
+    ['hamara', 'Hämärä: violetti tausta, oranssi otsikko. Aurinko on horisontin tuntumassa.'],
+    ['paiva', 'Päivä: vaalea syaani tausta, tummansininen teksti. Aurinko on ylhäällä, ihan tavallinen päivä.'],
+    ['halloween', 'Kammo: musta tausta, oranssi teksti, vihreä otsikko. Lokakuun lopun päivät ja perjantai 13.']
   ];
+  function chanceOn(c) { return c.chance === 'kaikki' ? true : (c.chance === 'ei' ? false : null); }
   function palette(c) {
-    var i;
+    var i, ch = chanceOn(c);
     if (c.paletti) { for (i = 0; i < PALETTES.length; i++) { if (PALETTES[i][0] === c.paletti) { return c.paletti; } } }
-    if (c.chance === 'kaikki' ? false : (c.chance === 'ei' ? false : roll(c.seed, 'paletti') < 3)) { return 'outo'; }
+    if (ch === true || (ch === null && roll(c.seed, 'paletti') < 3)) { return 'outo'; }
+    if (c.halloween || c.fri13) { return 'halloween'; }
     if (c.moon === 'täysi' && c.light === 'pimeä') { return 'kuutamo'; }
     if (c.polar === 'kaamos' && c.light !== 'valoisa') { return 'kaamos'; }
     if (c.polar === 'yötön' || (c.light === 'valoisa' && c.sunAlt >= 40)) { return 'ylivalotus'; }
+    if (c.light === 'hämärä') { return 'hamara'; }
+    if (c.light === 'valoisa') { return 'paiva'; }
     if (c.open) { return 'valaistu'; }
     return 'oletus';
   }
@@ -288,7 +378,7 @@
   window.Paita.galaksi = {
     PALETTES: PALETTES, palette: palette, paletteNow: paletteNow,
     norm: norm, context: context, parseCond: parseCond, match: match, roll: roll, hash: hash,
-    moonAge: moonAge, moonPhase: moonPhase, sunAlt: sunAlt, sunDay: sunDay, hm: hm,
+    moonAge: moonAge, SYN: SYN, passwordFor: passwordFor, startSanity: startSanity, MOON_AGE: MOON_AGE, moonPhase: moonPhase, sunAlt: sunAlt, sunDay: sunDay, hm: hm,
     WEEKDAYS: WEEKDAYS, WD_SHORT: WD_SHORT, MONTHS: MONTHS, ALL_ATOMS: ALL_ATOMS, describe: describe, todOf: todOf
   };
 })();

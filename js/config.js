@@ -15,6 +15,10 @@ window.PAITA_CONFIG = {
   showPhone: true,
   phone: '045 7834 8307',
   phoneTel: '+3584578348307',
+  // Instagram of the shop and the website of the café that shares the premises (both verified by the client).
+  instagram: 'https://www.instagram.com/oulunpaitapaino/',
+  cafeUrl: 'https://industrial.strength.coffee/',
+
   // Verified by the client.
   street: 'Pikisaarentie 15',
   postal: '90100 Oulu',

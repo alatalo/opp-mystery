@@ -27,8 +27,9 @@
 <link rel="apple-touch-icon" sizes="152x152" href="assets/img/icon-152x152.png">
 <link rel="preload" href="assets/fonts/silkscreen-latin.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="css/style.css">
-<!-- The palette depends on the conditions (moon, light, opening hours...), so these three small scripts run in the head
+<!-- The palette depends on the conditions (moon, light, opening hours...), so these small scripts run in the head
      and set <html data-paletti> before the first paint. Everything else loads at the end of the body. -->
+<script>window.PAITA_OV = 1;</script>
 <script src="js/config.js"></script>
 <script src="js/facts.js"></script>
 <script src="js/galaksi.js"></script>
@@ -52,6 +53,7 @@
     "addressLocality": "Oulu",
     "addressCountry": "FI"
   },
+  "sameAs": ["https://www.instagram.com/oulunpaitapaino/"],
   "geo": { "@type": "GeoCoordinates", "latitude": 65.0190053, "longitude": 25.4528008 },
   "openingHoursSpecification": [{
     "@type": "OpeningHoursSpecification",
@@ -63,7 +65,7 @@
 </script>
 </head>
 <body>
-<!-- recolours the ASCII figure (blue picture) to the active palette; the engine fills in the matrix -->
+<!-- recolours the ASCII pictures (blue picture) to the active palette; the engine fills in the matrix -->
 <svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false"><filter id="figf" color-interpolation-filters="sRGB"><feColorMatrix id="figm" type="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 1 0"/></filter></svg>
 <a class="skip" href="#sisalto">Siirry sisältöön</a>
 
@@ -72,7 +74,7 @@
 
   <header class="top">
     <div class="wrap">
-      <h1 class="logo"><img src="assets/img/logo.png" width="1024" height="61" alt="Oulun Paitapaino"></h1>
+      <h1 class="logo"><div class="logowrap"><a class="logolink" href="#alku" data-go="alku" aria-label="Oulun Paitapaino – alkuun"><img src="assets/img/logo.png" width="1024" height="61" alt="Oulun Paitapaino"></a><button type="button" class="lo-xbtn" aria-label="Laatikko"></button></div></h1>
     </div>
   </header>
 
@@ -91,13 +93,17 @@
         <p><a href="mailto:info@oulunpaitapaino.fi">info@oulunpaitapaino.fi</a></p>
         <!-- PHONE: remove if showPhone is false -->
         <p><a href="tel:+3584578348307">045 7834 8307</a></p>
+        <p><a href="https://www.instagram.com/oulunpaitapaino/">Instagram: oulunpaitapaino</a></p>
+        <p>Samassa tilassa toimii kahvila: <a href="https://industrial.strength.coffee/">industrial.strength.coffee</a></p>
         <p><a href="tylsa.html">En jaksa pelata</a></p>
+        <p><a href="tietosuoja.html">Tietosuoja</a></p>
       </noscript>
     </div>
   </main>
 
   <footer class="foot">
     <p id="ovnote" class="ovnote wrap" hidden><a href="galaksi.html"></a></p>
+    <div id="hud" class="hud wrap" hidden><span id="hud-jarki"></span><span id="hud-inv" class="hudinv"><span class="hudi" id="hud-lauta" hidden></span><span class="hudi" id="hud-kyna" hidden></span></span><span id="hud-loput"></span></div>
     <div class="wrap footrow">
       <button type="button" id="prev" class="prev" aria-label="Edellinen ruutu" style="visibility:hidden"><span aria-hidden="true">&lt;</span></button>
       <ul class="footlinks">
@@ -108,7 +114,7 @@
     </div>
   </footer>
 
-  <div id="boot" hidden aria-hidden="true"></div>
+  <div id="boot" hidden></div>
 </div>
 
 <!-- The note form lives here while it is not on screen (the engine moves it into the text area) -->
@@ -130,6 +136,7 @@
 
 <script src="js/tarina.js"></script>
 <script src="js/fx.js"></script>
+<script src="js/logo.js"></script>
 <script src="js/game.js"></script>
 </body>
 </html>

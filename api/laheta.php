@@ -2,6 +2,7 @@
 /*
  * Oulun Paitapaino - contact form mailer (cPanel hosting, no dependencies).
  * Set the two constants below before going live.
+ * NOT TESTED (no PHP in the build environment): read it through and send one test message before going live.
  * POST only. Returns JSON when called with fetch (Accept: application/json),
  * otherwise redirects back to ../index.html?lahetys=ok#paperilappu (or an error code).
  */
@@ -10,6 +11,7 @@ const MAIL_TO   = 'info@oulunpaitapaino.fi';        // recipient of the form mes
 const MAIL_FROM = 'lomake@oulunpaitapaino.fi';      // a mailbox on the same domain (helps deliverability)
 const MIN_FILL_MS = 3000;                           // faster than this = bot
 const BACK_URL = '../index.html';
+const RATE_SECONDS = 60;                            // one message per visitor (IP address) per this many seconds
 
 function wants_json(): bool {
     $accept = $_SERVER['HTTP_ACCEPT'] ?? '';
@@ -59,7 +61,22 @@ if (!empty($_POST['www'])) { done(false, 'virhe', 400); }
 // Minimum fill time, measured by the page in the visitor's browser.
 // Empty (no-JS post) is allowed; the honeypot is the only check then.
 $kesto = $_POST['kesto'] ?? '';
-if ($kesto !== '' && (!ctype_digit((string)$kesto) || (int)$kesto < MIN_FILL_MS)) { done(false, 'nopea', 400); }
+if (!is_string($kesto)) { done(false, 'virhe', 400); }   // arrays and other odd input
+if ($kesto !== '' && (!ctype_digit($kesto) || (int)$kesto < MIN_FILL_MS)) { done(false, 'nopea', 400); }
+
+// Simple rate limit without a database: one timestamp file per IP address in the system temp directory.
+// If the directory is not writable the check is skipped (fails open) so that real messages are never blocked by it.
+function rate_limited(): bool {
+    $dir = sys_get_temp_dir();
+    if (!is_dir($dir) || !is_writable($dir)) { return false; }
+    $ip = $_SERVER['REMOTE_ADDR'] ?? 'x';
+    $file = $dir . DIRECTORY_SEPARATOR . 'paitapaino-rate-' . hash('sha256', $ip);
+    $now = time();
+    $last = @is_file($file) ? (int)@file_get_contents($file) : 0;
+    if ($last > 0 && $now - $last < RATE_SECONDS) { return true; }
+    @file_put_contents($file, (string)$now, LOCK_EX);
+    return false;
+}
 
 $nimi   = clean_line($_POST['nimi'] ?? '', 100);
 $klaani = clean_line($_POST['klaani'] ?? '', 100);
@@ -70,7 +87,8 @@ if ($nimi === '' || $yhteys === '' || $viesti === '' || mb_strlen($yhteys, 'UTF-
     done(false, 'missing', 422);
 }
 
-$subject = '=?UTF-8?B?' . base64_encode('Heippalappu: ' . $nimi) . '?=';
+// RFC 2047: an encoded word may be at most 75 characters (63 of them base64 = 47 bytes), so the name is cut to 34 bytes.
+$subject = '=?UTF-8?B?' . base64_encode('Heippalappu: ' . mb_strcut($nimi, 0, 34, 'UTF-8')) . '?=';
 $body = "Nimi: $nimi\n"
       . ($klaani !== '' ? "Klaani: $klaani\n" : '')
       . "Yhteystieto: $yhteys\n\n"
@@ -86,6 +104,8 @@ $headers = [
 if (filter_var($yhteys, FILTER_VALIDATE_EMAIL)) {
     $headers[] = 'Reply-To: ' . $yhteys;
 }
+
+if (rate_limited()) { done(false, 'nopea', 429); }
 
 $sent = @mail(MAIL_TO, $subject, $body, implode("\r\n", $headers), '-f' . MAIL_FROM);
 done($sent, $sent ? 'ok' : 'fail', $sent ? 200 : 500);

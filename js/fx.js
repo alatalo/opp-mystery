@@ -112,12 +112,15 @@
       if (d.x < 0) { d.x = cols - 1; }
       if (d.x >= cols) { d.x = 0; }
       px = d.x * CW; py = d.y * CH;
+      // the rain stays on the whole screen but is dimmed where it would sit on text
+      c2.globalAlpha = masked(px, py) ? 0.14 : 1;
       if (snow) { c2.fillText(d.c < 0.5 ? '*' : '.', px, py); }
       else {
         c2.fillText('|', px, py);
         c2.fillText('\'', px - (spec.density >= 2 ? 2 : 0), py - CH);
         if (spec.density >= 2) { c2.fillText('.', px - 4, py - 2 * CH); }
       }
+      c2.globalAlpha = 1;
     }
     if (spec.sun) {
       c2.fillStyle = cv('--sun') || '#ffff00';
@@ -133,7 +136,7 @@
     if (spec.lightning && !bolt) {
       var now = Date.now();
       var go = forcedBolt ? (!boltDone && now - started > 1500) : (now - lastBolt > 30000 && now - started > 8000 && Math.random() < 0.0035 * nv('--bolt', 1));
-      if (go) { boltDone = true; lastBolt = now; makeBolt(); }
+      if (go) { boltDone = true; lastBolt = now; makeBolt(); try { if (Fx.boltHook) { Fx.boltHook(); } } catch (eh) { /* ignore */ } }
     }
     if (bolt) {
       bolt.t++;
@@ -154,46 +157,93 @@
   }
   Fx.bolt = function () { if (!disabled) { try { makeBolt(); } catch (e) { disable(); } } };
 
-  /* ---------- boot ---------- */
-  Fx.boot = function (lines, done) {
-    var finished = false;
+  /* ---------- pixel moon in its real phase (age in days since the new moon) ---------- */
+  Fx.moon = function (cv2, age, syn, lit, dim) {
+    try {
+      var N = 23, R = 10.5, ctx = cv2.getContext('2d'), p = (age % syn) / syn, x, y, nx, ny, w, on, edge, k;
+      cv2.width = N; cv2.height = N;
+      ctx.clearRect(0, 0, N, N);
+      for (y = 0; y < N; y++) {
+        for (x = 0; x < N; x++) {
+          nx = (x - (N - 1) / 2) / R; ny = (y - (N - 1) / 2) / R;
+          if (nx * nx + ny * ny > 1) { continue; }
+          w = Math.sqrt(1 - ny * ny);
+          if (p < 0.5) { k = Math.cos(2 * Math.PI * p); on = nx > k * w; }
+          else { k = Math.cos(2 * Math.PI * (1 - p)); on = nx < -k * w; }
+          edge = nx * nx + ny * ny > 0.78;
+          if (on) { ctx.fillStyle = lit; ctx.fillRect(x, y, 1, 1); }
+          else if (edge) { ctx.fillStyle = dim; ctx.fillRect(x, y, 1, 1); }
+        }
+      }
+    } catch (e) { /* no moon, the picture is still there */ }
+  };
+  Fx.cssVar = cv;
+
+  /* ---------- boot: self-tests that appear line by line ---------- */
+  // lines: "LABEL | RESULT" (result appears after a few dots) or plain text. opts: {skip: label of the button, stamp: closing line}
+  Fx.boot = function (lines, done, opts) {
+    opts = opts || {};
+    var finished = false, timers = [];
     function fin() {
       if (finished) { return; }
       finished = true;
+      Fx.bootEndedAt = Date.now();
       document.removeEventListener('keydown', fin, true);
-      document.removeEventListener('pointerdown', fin, true);
+      document.removeEventListener('pointerdown', onDown, true);
+      var k;
+      for (k = 0; k < timers.length; k++) { clearTimeout(timers[k]); }
       var b = document.getElementById('boot');
       try { if (b) { b.hidden = true; b.innerHTML = ''; } } catch (e) { /* ignore */ }
       done();
     }
+    function onDown(e) { fin(e); }
+    function later(fn, ms) { timers.push(setTimeout(function () { if (!finished) { try { fn(); } catch (e) { fin(); } } }, ms)); }
     try {
       var b = document.getElementById('boot');
       if (!b || disabled || reduced) { done(); return; }
       b.innerHTML = '';
       b.hidden = false;
       document.addEventListener('keydown', fin, true);
-      document.addEventListener('pointerdown', fin, true);
-      var list = lines.slice(0, 7), li = 0, ci = 0, cur = null;
-      var textNode = null, cursor = document.createElement('span');
+      document.addEventListener('pointerdown', onDown, true);
+      var list = lines.slice(0, 10), li = 0;
+      var box = document.createElement('div'); box.className = 'bootbox'; b.appendChild(box);
+      var btn = document.createElement('button');
+      btn.type = 'button'; btn.className = 'bootskip'; btn.id = 'bootskip';
+      btn.textContent = opts.skip || 'OHITA TESTIT';
+      btn.addEventListener('click', function (e) { e.stopPropagation(); fin(); });
+      b.appendChild(btn);
+      later(fin, 12500);
+      var cursor = document.createElement('span');
       cursor.className = 'cursor'; cursor.setAttribute('aria-hidden', 'true');
-      var t0 = null, lineDelay = 0;
-      setTimeout(fin, 3500);
-      (function step(ts) {
-        if (finished) { return; }
-        try {
-          if (t0 === null) { t0 = ts; }
-          if (!cur) {
-            if (li >= list.length) { setTimeout(fin, 220); return; }
-            cur = document.createElement('p'); cur.className = 'bl';
-            textNode = document.createTextNode(''); cur.appendChild(textNode); cur.appendChild(cursor);
-            b.appendChild(cur); ci = 0;
-          }
-          ci += 4;
-          textNode.nodeValue = list[li].slice(0, ci);
-          if (ci >= list[li].length) { textNode.nodeValue = list[li]; cur = null; li++; setTimeout(function () { requestAnimationFrame(step); }, 60); return; }
-        } catch (e2) { fin(); return; }
-        requestAnimationFrame(step);
-      })(performance.now ? performance.now() : 0);
+      function nextLine() {
+        if (li >= list.length) {
+          if (opts.stamp) { var st = document.createElement('p'); st.className = 'bl stampline'; st.textContent = opts.stamp; box.appendChild(st); }
+          later(fin, 1100); return;
+        }
+        var txt = list[li], parts = txt.split('|'), label = parts[0].replace(/\s+$/, ''), res = parts.length > 1 ? parts[1].replace(/^\s+/, '') : '';
+        var p = document.createElement('p'); p.className = 'bl';
+        var tn = document.createTextNode(''); p.appendChild(tn); p.appendChild(cursor); box.appendChild(p);
+        var ci = 0, dots = 0, nd = res ? 3 + (li % 4) : 0;
+        li++;
+        (function typeStep() {
+          ci += 2;
+          tn.nodeValue = label.slice(0, ci);
+          if (ci < label.length) { later(typeStep, 22); return; }
+          tn.nodeValue = label;
+          if (!res) { later(nextLine, 520); return; }
+          (function dotStep() {
+            if (dots < nd) { dots++; tn.nodeValue = label + ' ' + new Array(dots + 1).join('.'); later(dotStep, 130); return; }
+            tn.nodeValue = label + ' ' + new Array(nd + 1).join('.') + ' ';
+            var r = document.createElement('span'); r.className = 'res';
+            p.insertBefore(r, cursor);
+            if (res.charAt(0) === '~') { // the sign switches on letter by letter
+              var word = res.slice(1), wi = 0;
+              (function lit() { wi++; r.textContent = word.slice(0, wi); if (wi < word.length) { later(lit, 70); } else { later(nextLine, 380); } })();
+            } else { r.textContent = res; later(nextLine, 380); }
+          })();
+        })();
+      }
+      nextLine();
     } catch (e) { fin(); }
   };
 

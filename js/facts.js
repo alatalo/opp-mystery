@@ -13,14 +13,18 @@
   // Rule: a URL that carries any of these parameters REPLACES the active set and it is kept in sessionStorage for this
   // browser tab, so the settings survive navigation, reloads and a trip to tylsa.html/tietosuoja.html and back.
   // ?ov=0 (or the "clear" button in galaksi.html) removes them. Without storage they apply to the current URL only.
-  var OV_NAMES = ['nyt', 'kuu', 'aika', 'valo', 'aurinko', 'paiva', 'kausi', 'auki', 'palaava', 'siemen', 'nahty', 'arpa', 'puhelin', 'paletti'];
+  var OV_NAMES = ['nyt', 'kuu', 'aika', 'valo', 'aurinko', 'paiva', 'kausi', 'auki', 'palaava', 'siemen', 'nahty', 'arpa', 'puhelin', 'paletti', 'hahmo', 'vuoro', 'jarki', 'kauhu'];
   function urlParam(name) {
     var m = new RegExp('[?&]' + name + '=([^&#]*)').exec(location.search);
     if (!m) { return null; }
     try { return decodeURIComponent(m[1].replace(/\+/g, ' ')); } catch (e) { return m[1]; }
   }
   var overrides = {};
+  // Only the game (index.html) and galaksi.html switch the overrides on (window.PAITA_OV = 1 before this script).
+  // Plain pages (tylsa, tietosuoja, 404) ignore every URL override and always show the real facts.
+  var OV_ON = window.PAITA_OV === 1;
   (function () {
+    if (!OV_ON) { return; }
     var got = {}, any = false, i, v;
     for (i = 0; i < OV_NAMES.length; i++) { v = urlParam(OV_NAMES[i]); if (v !== null) { got[OV_NAMES[i]] = v; any = true; } }
     var clear = urlParam('ov') === '0';
@@ -31,9 +35,8 @@
     } catch (e) { overrides = any ? got : {}; }
   })();
   function param(name) {
-    if (overrides.hasOwnProperty(name)) { return overrides[name]; }
-    if (OV_NAMES.indexOf(name) >= 0) { return null; }
-    return urlParam(name);
+    if (OV_NAMES.indexOf(name) >= 0) { return overrides.hasOwnProperty(name) ? overrides[name] : null; }
+    return OV_ON ? urlParam(name) : null;
   }
   if (param('puhelin') === '0') { cfg.showPhone = false; }
   if (param('puhelin') === '1') { cfg.showPhone = true; }
@@ -120,6 +123,8 @@
   function hrefFor(kind) {
     if (kind === 'tel') { return 'tel:' + (cfg.phoneTel || String(cfg.phone).replace(/[^0-9+]/g, '')); }
     if (kind === 'mail') { return 'mailto:' + cfg.email; }
+    if (kind === 'instagram') { return cfg.instagram || null; }
+    if (kind === 'cafe') { return cfg.cafeUrl || null; }
     if (kind === 'route') { return 'https://www.google.com/maps/dir/?api=1&destination=' + cfg.lat + ',' + cfg.lng; }
     return null;
   }
